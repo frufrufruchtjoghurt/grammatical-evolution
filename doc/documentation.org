@@ -1,0 +1,226 @@
+#+title: Bachelor Thesis: Grammatical Evolution - Documentation
+#+description: Project structure and tasks for grammatical evolution for regular grammars.
+#+author: Markus Fruhmann
+
+* Grammatical Evolution
+** Regular grammars with RegEx
+The first part of the project will implement and evaluate creating regular expressions to match regular grammars. The first section will describe the regex operators, that will be used as functions for grammatical evolution. The second section will focus on concrete examples and possible representations for grammatical evolution.
+
+*** Definitions
+Regex allows for many different meta symbols, like operators, scopes and groups, but a small subset will be sufficient for our purposes. Following meta symbols will be used:
+- =*=: capture the preceding token or group 0 to \infin times.
+- =+=: captures the preceding token or group 1 to \infin times.
+- =?=: captures the preceding token 0 or 1 times.
+- =|=: logical OR, combines preceding and following token.
+- =&=: logical AND, combines preceding and following token.
+
+Grouping all meta symbols in use by arity is necessary for the creation of an effective evolutionary algorithm. Since meta symbols will represent the functions of our grammatical evolution, 'function' will be the term used from now on.
+
+**** 1-ary functions
+Following functions are 1-ary (unary) and operate on one parameter:
+- =*=
+- =+=
+- =?=
+
+**** 2-ary functions
+Following functions are 2-ary (binary) and operate on two parameters:
+- =|=
+- =&=
+
+*** Examples
+This section provides small example rulesets and their possible graph based representation using regular expressions.
+
+**** Recursive rules
+The following regular grammar ruleset produces only words containing the letter =a=. A word consists of at least one a.
+
+- V_{T} = {_a_}
+- V_{N} = {S, A}
+
+- S \rightarrow A
+- A \rightarrow _a_ A
+- A \rightarrow _a_
+
+The graph representation of a regular grammar for this ruleset could look like this:
+#+begin_src clojure
+("+" "a") ;; produces the regular expression '(a)+'
+#+end_src
+
+Another possible solution could be:
+#+begin_src clojure
+("&" "a" ("*" "a")) ;; produces the regular expression 'a(a)*'
+#+end_src
+
+**** Circular rules
+The next ruleset defines a regular grammar, that produces any number of =ab=. The empty word \epsilon is allowed as well.
+
+- V_{N} = {_a_, _b_}
+- V_{T} = {S, A, B}
+
+- S = A
+- A = aB
+- A = \epsilon
+- B = bA
+
+Following graph could represent this ruleset:
+#+begin_src clojure
+;; produces the regular expression '(ab)*'
+("*"
+  ("&" "a" "b"))
+#+end_src
+
+**** Exit conditions
+The previous ruleset should now be expanded, so that at least one pair =ab= should be produced.
+
+- V_{N} = {_a_, _b_}
+- V_{T} = {S, A, B, C}
+
+- S \rightarrow A
+- A \rightarrow aB
+- A \rightarrow aC
+- B \rightarrow bA
+- C \rightarrow b
+
+This could yield the following graph:
+#+begin_src clojure
+("+"
+  ("&" "a" "b"))
+#+end_src
+
+*** Difficulties
+Representing regular grammars with regular expressions was very straightforward so far, but regular expressions come with their own difficulties. For better display, following rules are given:
+
+- V_{N} = {_a_, _b_}
+- V_{T} = {S, A, B}
+
+- S \rightarrow A
+- A \rightarrow aB
+- A \rightarrow \epsilon
+- B \rightarrow bA
+- B \rightarrow \epsilon
+
+These rules are very similar to our previous examples, but now any alteration of =a= and =b= is allowed. For example =a= and =aba= are valid as well. This combination can be represented using regex, but the expression is already harder to read:
+#+begin_src clojure
+;; produces '((ab)*)(a)?'
+("&"
+  ("*"
+    ("&" "a" "b"))
+  ("?" "a"))
+#+end_src
+
+*** Generating an initial population
+We will generate an initial population with the grow and full method, as well as a more unified algorithm like ramped half-and-half.
+
+**** grow
+To generate an inidividal of a population with the grow method, a random item is chosen from all functions and terminals. If a terminal is being chosen, it is treated as a leaf and no further nodes are added. If a function was selected, more items are being added according to the functions arity.
+
+#+begin_src clojure
+(def functions
+  ["*" "+" "?" "&" "|"])
+
+(def arities
+  {"*" 1
+   "+" 1
+   "?" 1
+   "&" 2
+   "|" 2})
+#+end_src
+
+The algorithm stops when no more items can be assigned i.e. all leafs are terminals or if the maximum depth has been reached.
+
+***** Example
+Consider following example, a regular grammar with these valid and invalid words.
+#+begin_src clojure
+(def valid-words
+  ["ababababab" "abab" "" "ab"])
+
+(def invalid-words
+  ["a" "aaaa" "bbb" "bababa" "abababbb" "ababaaa"])
+#+end_src
+
+By analyzing these words, we are able to determine the used terminals.
+#+begin_src clojure
+(def terminals
+  ["a" "b"])
+#+end_src
+
+When these terminals are combined into a list with the predefined functions, the full list of possible nodes can be determined.
+#+begin_src clojure
+(def nodes
+  ["*" "+" "?" "&" "|" "a" "b"])
+#+end_src
+
+Following sample trees could be created by randomly selecting elements from the node list. To keep it simple, the maximum depth is given with 4.
+#+begin_src clojure
+;; produces '(((a)*|(b)?)+)*'
+("*"
+ ("+"
+  ("|"
+   ("*" "a")
+   ("?" "b"))))
+#+end_src
+This example shows, that all contents of all functions have to be grouped automatically.
+
+Another example tree could be:
+#+begin_src clojure
+;; produces 'a(b|(a)?)'
+("&" "a"
+ ("|" "b"
+  ("?" "a")))
+#+end_src
+
+**** full
+When generating an individual with the full method, only items from the function set are selected until the maximum tree depth. Afterwards all remaining nodes are populated with items from the terminal set.
+
+#+begin_src clojure
+(def functions
+  ["*" "+" "?" "&" "|"])
+#+end_src
+
+***** Example
+Consider following example, a regular grammar with these valid and invalid words.
+#+begin_src clojure
+(def valid-words
+  ["ababababab" "abab" "" "ab"])
+
+(def invalid-words
+  ["a" "aaaa" "bbb" "bababa" "abababbb" "ababaaa"])
+#+end_src
+
+By analyzing these words, we are able to determine the used terminals.
+#+begin_src clojure
+(def terminals
+  ["a" "b"])
+#+end_src
+
+The following tree with a maximum depth of 4 might be generated by the full method.
+#+begin_src clojure
+;; produces '(((b)+)?)*|(((b)?)*)?'
+("|"
+ ("*"
+  ("?"
+   ("+" "b")))
+ ("?"
+  ("*"
+   ("?" "b"))))
+#+end_src
+
+This is another example tree.
+#+begin_src clojure
+;; produces '(((b)+ba)|((a)*(a|b))((aa)?)*)'
+("&"
+ ("|"
+  ("&"
+   ("+" "b")
+   ("&" "b" "a"))
+  ("&"
+   ("*" "a")
+   ("|" "a" "b")))
+ ("*"
+  ("?"
+   ("&" "a" "a"))))
+#+end_src
+
+**** ramped half-and-half
+
+** Regular grammars with rules
+
