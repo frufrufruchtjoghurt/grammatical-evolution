@@ -1,6 +1,7 @@
 #+title: Bachelor Thesis: Grammatical Evolution - Documentation
 #+description: Project structure and tasks for grammatical evolution for regular grammars.
 #+author: Markus Fruhmann
+#+bibliography: references.bib
 
 * Grammatical Evolution
 ** Regular grammars with RegEx
@@ -109,6 +110,7 @@ These rules are very similar to our previous examples, but now any alteration of
 
 *** Generating an initial population
 We will generate an initial population with the grow and full method, as well as a more unified algorithm like ramped half-and-half.
+The sample implementation upon which this implementation is based on can be found in Genetic Programming 1 by John R. Koza on page 740.
 
 **** grow
 To generate an inidividal of a population with the grow method, a random item is chosen from all functions and terminals. If a terminal is being chosen, it is treated as a leaf and no further nodes are added. If a function was selected, more items are being added according to the functions arity.
