@@ -6,6 +6,11 @@
   [all-words]
   (vec (set (apply concat all-words))))
 
+(defn in?
+  "Returns true if the collection contains the given element."
+  [coll element]
+  (not= (some #(= element %) coll) nil))
+
 (defn list->regex-group
   "Accepts a list of strings as input and returns the elements as string surrounded by '()'"
   [string-list]
@@ -38,3 +43,14 @@
   [[op arg]]
   (string->regex-group
    (str/join "" [arg op])))
+
+(defn tree->regex
+  [[head & tail] functions]
+  (if (in? functions head)
+    (let [func head
+          [arg1 arg2] tail]
+      (condp = func
+        "&" (resolve-& [func (tree->regex arg1 functions) (tree->regex arg2 functions)])
+        "|" (resolve-| [func (tree->regex arg1 functions) (tree->regex arg2 functions)])
+        (resolve-ops [func (tree->regex arg1 functions)])))
+    head))
