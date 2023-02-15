@@ -223,6 +223,65 @@ This is another example tree.
 #+end_src
 
 **** ramped half-and-half
+When using ramped half-and-half, half of the trees of the initial population are created using the grow method and the other half is created using the full method. This ensures a larger variety of tree shapes, which should help with discovering better results.
+
+*** Evaluation of individuals trees
+Before determining the best trees of a population, the performance of each individual has to be evaluated. To evaluate our regular expressions, constructing a regex string from our trees is necessary. Every predefined function must be resolved correctly, in order to produce the desired regular expression and to ensure the validity of the result.
+
+**** =&= function
+The =&= function is the simplest to resolve, since the =&= itself is not present in regex syntax and it merely combines both of it's parameters into a single string.
+#+begin_example
+("&" "a" "b") => "(ab)"
+#+end_example
+As already shown above, all functions will be wraped as groups, to ensure that the expected result is being produced.
+The resolution of =&= can be implemented like this.
+#+begin_src clojure
+(defn resolve-&
+  [[_func & args]]
+  (str/join ""
+            (-> (quote args)
+                (conj "(")
+                (concat '(")")))))
+#+end_src
+
+**** =|= function
+The =|= function is a little bit more difficult to process, since the =|= symbol itself has to be placed between it's two arguments.
+#+begin_example
+("|" "a" "b") => "(a|b)"
+#+end_example
+Grouping is applied as well. Since grouping is needed so often and the application is always the same, following helper function can be defined.
+#+begin_src clojure
+(defn string->regex-group
+  "The input string is wrapped with '(' and ')'"
+  [s]
+  (str/join ""
+            (-> (list s)
+                (conj "(")
+                (concat '(")")))))
+#+end_src
+
+Following function places =|= between the arguments and groups it to the desired regular expression.
+#+begin_src clojure
+(defn resolve-|
+  [[func arg1 arg2]]
+  (string->regex-group
+    (str/join "" [arg1 func arg2])))
+#+end_src
+
+**** Operator functions =*=, =+= and =?=
+All operator functions =*=, =+= and =?= can be implemented the same. Each of these functions has one argument and after all processing is applied, the operator should be after the argument.
+#+begin_example
+("*" "a") => "(a*)"
+("+" "b") => "(b+)"
+("?" ("&" "a" "b")) => "((ab)?)"
+#+end_example
+
+All of these operators can be resolved with this function.
+#+begin_src clojure
+(defn resolve-ops
+  [[op arg]]
+  (string->regex-group
+   (str/join "" [arg op])))
+#+end_src
 
 ** Regular grammars with rules
-
