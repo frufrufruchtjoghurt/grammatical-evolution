@@ -1,7 +1,7 @@
 (ns markusfruhmann.grammatical-evolution
   (:gen-class)
   (:require [clojure.string :as str]
-            [markusfruhmann.generic :as gen]
+            [markusfruhmann.generic :as generic]
             [markusfruhmann.constants :as const]
             [markusfruhmann.utils :as utils]))
 

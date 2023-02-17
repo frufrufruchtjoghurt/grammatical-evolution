@@ -23,24 +23,26 @@
         ;; is used.
         (let [function (rand-nth function-set)
               arity (arity-map function)]
-          (cons
-           function
-           (create-arguments-for-function
-            arity
-            function-set arity-map terminal-set
-            (- remaining-depth 1) full?)))
+          (into []
+                (cons
+                 function
+                 (create-arguments-for-function
+                  arity
+                  function-set arity-map terminal-set
+                  (- remaining-depth 1) full?))))
         :else
         (let [choice (rand-int (+ (count function-set)
                                   (count terminal-set)))]
           (if (< choice (count function-set))
             (let [function (nth function-set choice)
                   arity (arity-map function)]
-              (cons
-               function
-               (create-arguments-for-function
-                arity
-                function-set arity-map terminal-set
-                (- remaining-depth 1) full?)))
+              (into []
+                    (cons
+                     function
+                     (create-arguments-for-function
+                      arity
+                      function-set arity-map terminal-set
+                      (- remaining-depth 1) full?))))
              ;; Select a terminal from the terminal set
             (choose-from-terminal-set terminal-set)))))
 
@@ -52,11 +54,12 @@
    function-set arity-map terminal-set
    remaining-depth full?]
   (when (> number-of-arguments 0)
-    (cons
-     (create-individual-program
-      function-set arity-map terminal-set
-      remaining-depth false full?)
-     (create-arguments-for-function
-      (- number-of-arguments 1)
-      function-set arity-map terminal-set
-      remaining-depth full?))))
+    (into []
+          (cons
+           (create-individual-program
+            function-set arity-map terminal-set
+            remaining-depth false full?)
+           (create-arguments-for-function
+            (- number-of-arguments 1)
+            function-set arity-map terminal-set
+            remaining-depth full?)))))
