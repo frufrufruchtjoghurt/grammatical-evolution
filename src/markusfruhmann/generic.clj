@@ -63,3 +63,50 @@
             (- number-of-arguments 1)
             function-set arity-map terminal-set
             remaining-depth full?)))))
+
+(defn create-population
+  "Creates a population of programs for the given size.
+  With seeded-programs predefined programs can be supplied. Useful for debugging.
+  Method specifies the method for generating programs. :full, :grow and :ramped are supported.
+  Max-tree-depth sets an initial maximum tree depth for all programs."
+  [size-of-population
+   function-set arity-set terminal-set
+   & {:keys [seeded-programs method max-tree-depth]
+      :or {seeded-programs nil,
+           method :ramped
+           max-tree-depth 10}}]
+  (loop [population   (if seeded-programs
+                        (set seeded-programs)
+                        #{})
+         remaining    (- size-of-population (count seeded-programs))
+         full-method? false
+         min-tree-depth   1
+         max-tree-depth max-tree-depth
+         current-attempts 0]
+    (if (> remaining 0)
+      (let [program (create-individual-program
+                     function-set arity-set terminal-set
+                     (case method
+                       (:full :grow) max-tree-depth
+                       (+ min-tree-depth
+                          (mod remaining
+                               (- max-tree-depth min-tree-depth))))
+                     true
+                     (case method
+                       :full true
+                       :grow false
+                       full-method?))]
+        (if (contains? population program)
+          ;; if the program already exists, we have to generate a new one
+          (recur population remaining full-method?
+                 ;; if more than 20 attempts fail, the minimum depth should be increased
+                 (if (> current-attempts 20) (inc min-tree-depth) min-tree-depth)
+                 ;; account for adaptation of min-tree-depth
+                 (max max-tree-depth (inc min-tree-depth))
+                 (inc current-attempts))
+          (recur (conj population program)
+                 (dec remaining)
+                 ;; switch the generation method for ramped-half-and-half
+                 (not full-method?)
+                 min-tree-depth max-tree-depth 0)))
+      population)))
