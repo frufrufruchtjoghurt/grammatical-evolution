@@ -1,41 +1,43 @@
 (ns markusfruhmann.utils
   (:require [clojure.string :as str]))
 
+(defn get-words-from-tomita
+  "Concatenates a map of :valid and :invalid words."
+  [tomita]
+  (reduce (fn [words [_ v]] (concat words v)) [] tomita))
+
 (defn get-terminals
-  "Accepts a list of words as input and returns all unique terminal."
-  [all-words]
-  (into [] (set (apply concat all-words))))
+  "Accepts a list of words as input and returns all unique terminals."
+  [words]
+  (->> words
+       (apply concat)
+       (set)
+       (map str)
+       (into [])))
+
+(defn get-terminals-from-tomita
+  "Returns all terminals from a tomita word map."
+  [tomita]
+  (-> tomita
+      (get-words-from-tomita)
+      (get-terminals)))
 
 (defn in?
   "Returns true if the collection contains the given element."
   [coll element]
   (not= (some #(= element %) coll) nil))
 
-(defn string->regex-group
-  "The input string is wrapped with '(' and ')'"
-  [s]
-  (str/join ""
-            (-> (list s)
-                (conj \()
-                (concat '(\))))))
-
-(defn resolve-|
-  [[arg1 arg2]]
-  (string->regex-group
-   (str/join "" [arg1 \| arg2])))
-
-(defn resolve-ops
-  [[op arg]]
-  (string->regex-group
-   (str/join "" [arg op])))
-
 (defn tree->regex
-  [[head & tail] functions]
-  (if (in? functions head)
-    (let [func head
-          [arg1 arg2] tail]
-      (case func
-        \& (str/join "" [(tree->regex arg1 functions) (tree->regex arg2 functions)])
-        \| (resolve-| [(tree->regex arg1 functions) (tree->regex arg2 functions)])
-        (resolve-ops [func (tree->regex arg1 functions)])))
-    head))
+  [tree]
+  (loop [remaining [tree]
+         result ""]
+    (let [[tree & tree-tail] remaining
+          [node & node-tail] tree]
+      (if (nil? tree)
+        result
+        (case node
+          :& (recur (concat ["("] node-tail [")"] tree-tail) result)
+          :| (let [[arg1 arg2] node-tail]
+               (recur (concat ["(" arg1 "|" arg2 ")"] tree-tail) result))
+          (:* :+ :?) (recur (concat ["("] node-tail [(name node) ")"] tree-tail) result)
+          (recur (concat node-tail tree-tail) (str/join [result node])))))))
