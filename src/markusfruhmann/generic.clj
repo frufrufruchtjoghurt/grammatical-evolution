@@ -72,7 +72,7 @@
   [size-of-population
    function-set arity-set terminal-set
    & {:keys [seeded-programs method max-tree-depth]
-      :or {seeded-programs nil,
+      :or {seeded-programs nil
            method :ramped
            max-tree-depth 10}}]
   (loop [population   (if seeded-programs
@@ -110,3 +110,105 @@
                  (not full-method?)
                  min-tree-depth max-tree-depth 0)))
       population)))
+
+(defn count-tree-elements
+  [tree]
+  (-> tree
+      (flatten)
+      (count)))
+
+(defn by-score-size
+  [m1 m2]
+  (compare [(:score m2) (:size m1)]
+           [(:score m1) (:size m2)]))
+
+(defn fitness-of-population
+  "Evaluates the population with the given fitness-func for a word-map."
+  [population fitness-func word-map]
+  (loop [population population
+         fitness []]
+    (if (> (count population) 0)
+      (let [[individual & rest] population
+            size                  (count-tree-elements individual)
+            score                 (fitness-func individual word-map)]
+        (recur rest (conj fitness {:prog individual :size size :score score})))
+      fitness)))
+
+(defn find-with-tournament-selection
+  "Chooses a random amount of programs between 2 and (/ (count population) 3)."
+  [population]
+  (let [shuffled (shuffle population)]
+    (as-> population p
+      (count p)
+      (/ p 3)
+      (rand-int p)
+      (max p 2)
+      (subvec shuffled 0 p)
+      (sort by-score-size p)
+      (first p))))
+
+(defn find-individual
+  "Retrieve an individual from the population with the defined selection method."
+  [population]
+  (find-with-tournament-selection population))
+
+(defn breed-new-population
+  [old-population
+   function-set arity-set terminal-set]
+  (let [population-size (count old-population)]
+    (loop [population []]
+      (let [index (count population)]
+        (if (< index population-size)
+          (let [individual (find-individual population)
+                frac       (/ index population-size)]
+            (cond (and (< index (- population-size 1))
+                       ;; TODO: percentage of crossover should be configurable
+                       (< frac (* 0.95 population-size)))
+                  ;; TODO: implement crossover
+                  nil
+                  ;; TODO: percentage of reproduction (in this case 4%, since 0.99 - 0.95 = 4) should be configurable
+                  (< frac (* 0.99 population-size))
+                  (recur (conj population individual))
+                  :else
+                  ;; TODO: implement mutation
+                  nil))
+          population)))))
+
+(defn execute-generations
+  [population max-generations
+   fitness-func terminate?
+   function-set arity-set terminal-set word-map]
+  (loop [generation 0
+         current-population population
+         best-of-run (first population)]
+    (if (or (>= generation max-generations) (terminate? best-of-run))
+      best-of-run
+      (let [fitness-sorted (as-> current-population p
+                             (fitness-of-population p fitness-func
+                                                    word-map)
+                             (sort by-score-size p))
+            best-of-gen (first fitness-sorted)
+            best-of-run (first (sort by-score-size [best-of-run best-of-gen]))]
+        (println "Generation" generation "'s best individual:")
+        (println best-of-gen)
+        (let [next-population nil])))))
+
+(defn run-genetic-programming
+  [max-generations size-of-population
+   fitness-function terminate?
+   function-set arity-set word-map
+   & {:keys [seeded-programs method max-tree-depth]
+      :or {seeded-programs nil
+           method :ramped
+           max-tree-depth 10}}]
+  (let [terminal-set (utils/get-terminals-from-map word-map)
+        population (generic/create-population size-of-population
+                                              function-set
+                                              arity-set
+                                              terminal-set
+                                              :seeded-programs seeded-programs
+                                              :method method
+                                              :max-tree-depth max-tree-depth)]
+    (execute-generations population max-generations
+                         fitness-function terminate?
+                         function-set arity-set terminal-set word-map)))
