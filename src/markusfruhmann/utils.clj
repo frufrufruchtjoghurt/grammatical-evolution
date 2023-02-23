@@ -54,11 +54,12 @@
 
 (defn median
   [coll]
-  (let [sorted (sort coll)
-        cnt (count coll)
-        middle (quot cnt 2)]
-    (if (odd? cnt)
-      (nth sorted middle)
-      (as-> [(nth sorted middle) (nth sorted (dec middle))] m
-        (reduce + m)
-        (/ m 2)))))
+  (when (> (count coll) 0)
+    (let [sorted (sort coll)
+          cnt    (count coll)
+          middle (quot cnt 2)]
+      (if (odd? cnt)
+        (nth sorted middle)
+        (as-> [(nth sorted middle) (nth sorted (dec middle))] m
+          (reduce + m)
+          (/ m 2))))))
