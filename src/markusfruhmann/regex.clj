@@ -1,8 +1,19 @@
 (ns markusfruhmann.regex
-  (:require [clojure.string :as str]
-            [markusfruhmann.constants :as c]
-            [markusfruhmann.generic :as g]
-            [markusfruhmann.utils :as utils]))
+  (:require
+   [clojure.string :as str]
+   [markusfruhmann.constants :as c]
+   [markusfruhmann.generic.data :as d]
+   [markusfruhmann.utils :as utils]))
+
+(declare regex-fitness
+         regex-terminate?)
+
+(def default-regex-config (d/->GPConfig c/functions-regex ;; function set
+                                        c/arities-regex   ;; arity set
+                                        nil               ;; seeded programs
+                                        #'regex-fitness     ;; fitness function
+                                        #'regex-terminate?  ;; termination predicate
+                                        ))
 
 (defn tree->regex
   [tree]
@@ -18,14 +29,6 @@
                (recur (concat ["(" arg1 "|" arg2 ")"] tree-tail) result))
           (:* :+ :?) (recur (concat ["("] node-tail [(name node) ")"] tree-tail) result)
           (recur (concat node-tail tree-tail) (str/join [result node])))))))
-
-(defn create-individual-program-from-tomita
-  "Uses a tomita word list to generate an individual program.
-  Used for easier development, ALL PARAMETERS ARE PREDEFINED!"
-  [tomita]
-  (as-> tomita t
-    (utils/get-terminals-from-map t)
-    (g/create-individual-program c/functions-regex c/arities-regex t 5 true false)))
 
 (defn find-matches
   "Returns a list of the full match or nil for every word in string-list matched by regex."
@@ -48,9 +51,20 @@
     (assoc map k2 (inc (map k2)))))
 
 (defn regex-fitness
+  "Scores an individual by applying it to the predefined word-map and calculating the f1-score."
   [individual word-map]
   (let [regex (tree->regex individual)]
     (-> word-map
         (assoc :valid-words (find-matches regex (:valid-words word-map)))
         (assoc :invalid-words (find-matches regex (:invalid-words word-map)))
         (utils/f1-score regex-reducer))))
+
+(defn regex-terminate?
+  "Is true if the best individual has a score of 1 and is smaller than the median of the generation."
+  [sorted-generation]
+  (let [best-of-gen (first sorted-generation)]
+    (when (= (:score best-of-gen) 1N)
+      (->> sorted-generation
+           (map #(:size %))
+           (utils/median)
+           (<= (:size best-of-gen))))))
