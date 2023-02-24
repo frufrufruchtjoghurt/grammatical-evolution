@@ -1,4 +1,7 @@
-(ns markusfruhmann.utils)
+(ns markusfruhmann.utils
+  (:require
+   [clojure.test.check.generators :as gen]
+   [miner.strgen :as sg]))
 
 (defn get-words-from-map
   "Concatenates a map of :valid and :invalid words."
@@ -63,3 +66,14 @@
         (as-> [(nth sorted middle) (nth sorted (dec middle))] m
           (reduce + m)
           (/ m 2))))))
+
+(defn generate-word-map
+  ([valid-regex invalid-regex amount]
+   {:valid-words   (gen/sample (sg/string-generator valid-regex) amount)
+    :invalid-words (gen/sample (sg/string-generator invalid-regex) amount)})
+
+  ([valid-regex invalid-regex word-map amount]
+   (let [valid   (:valid-words word-map)
+         invalid (:invalid-words word-map)]
+     {:valid-words   (concat valid (gen/sample (sg/string-generator valid-regex) (- amount (count valid))))
+      :invalid-words (concat invalid (gen/sample (sg/string-generator invalid-regex) (- amount (count invalid))))})))

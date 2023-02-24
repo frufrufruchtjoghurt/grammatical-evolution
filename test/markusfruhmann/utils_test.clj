@@ -96,3 +96,38 @@
   (are [pass?] (= true pass?)
     (:pass? (check/quick-check 100 median-prop))
     (:pass? (check/quick-check 100 median-contains-value-prop))))
+
+(def select-regex (gen/elements [#"a*" #"(b|ab)+" #"(ab)*" #"(a|b)*" #"b*(aa)+b*" #"(a|ba|bba)*" #"(ab|ba)+" #"(aa|bb)*"]))
+
+(def generate-word-map-prop
+  (prop/for-all [i gen/nat
+                 reg1 select-regex
+                 reg2 select-regex]
+                (let [m (subject/generate-word-map reg1 reg2 i)]
+                  (and
+                   ;; The generated arrays should be of size i
+                   (reduce-kv (fn [b _ v] (and b (= i (count v)))) true m)
+                   ;; All elements of the generated arrays should be strings
+                   (reduce-kv
+                    (fn [b _ v] (and b
+                                     (reduce
+                                      (fn [b v] (and b (string? v))) true v))) true m)))))
+
+(def generate-word-map-with-seed-prop
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 1000})
+                 reg1 select-regex
+                 reg2 select-regex
+                 valid (gen/vector gen/string)
+                 invalid (gen/vector gen/string)]
+                (let [m (subject/generate-word-map reg1 reg2 {:valid-words valid :invalid-words invalid} i)]
+                  ;; The size of the arrays in m should either be i or equal to
+                  ;; the respective seeded vector if it was already larger than i
+                  (reduce-kv (fn [b k v] (and b (or (= (count v) i)
+                                                    (if (= k :valid-words)
+                                                      (= (count v) (count valid))
+                                                      (= (count v) (count invalid)))))) true m))))
+
+(deftest generate-word-map-test-check-props
+  (are [pass?] (= true pass?)
+    (:pass? (check/quick-check 100 generate-word-map-prop))
+    (:pass? (check/quick-check 100 generate-word-map-with-seed-prop))))

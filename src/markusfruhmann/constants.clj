@@ -1,6 +1,6 @@
 (ns markusfruhmann.constants
-  (:require [miner.strgen :as sg]
-            [clojure.test.check.generators :as gen]))
+  (:require
+   [markusfruhmann.utils :as utils]))
 
 (def functions-regex
   [:* :+ :? :& :|])
@@ -413,23 +413,30 @@
                                     "abaabab"
                                     "ababbbba"]})
 
-(def tomita-1 {:valid-words (gen/sample (sg/string-generator #"a*" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"(b+|a+b)+" 50) 100)})
+(def tomita-1 (utils/generate-word-map #"a*" #"(b+|a+b)+" tomita-1-base 100))
+;; (def tomita-1 {:valid-words (gen/sample (sg/string-generator #"a*") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"(b+|a+b)+") 100)})
 
-(def tomita-2 {:valid-words (gen/sample (sg/string-generator #"(ab)*" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"(a+|b+)*a" 50) 100)})
+(def tomita-2 (utils/generate-word-map #"(ab)*" #"(a+|b+)*a" tomita-2-base 100))
+;; (def tomita-2 {:valid-words (gen/sample (sg/string-generator #"(ab)*") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"(a+|b+)*a") 100)})
 
-(def tomita-3 {:valid-words (gen/sample (sg/string-generator #"b*(((aa)+b*)|(a(aa)*(bb)+))*a?" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"b*((((aa)+b*)|(a(aa)*(bb)+))*(a(aa)*b(bb)*)+)+a?" 50) 100)})
+(def tomita-3 (utils/generate-word-map #"b*(((aa)+b*)|(a(aa)*(bb)+))*a?" #"b*((((aa)+b*)|(a(aa)*(bb)+))*(a(aa)*b(bb)*)+)+a?" tomita-3-base 100))
+;; (def tomita-3 {:valid-words (gen/sample (sg/string-generator #"b*(((aa)+b*)|(a(aa)*(bb)+))*a?") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"b*((((aa)+b*)|(a(aa)*(bb)+))*(a(aa)*b(bb)*)+)+a?") 100)})
 
-(def tomita-4 {:valid-words (gen/sample (sg/string-generator #"(a|ba|bba)*(bb|b)?" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"(b*a*)*bbb(b*a*)*" 50) 100)})
+(def tomita-4 (utils/generate-word-map #"(a|ba|bba)*(bb|b)?" #"(b*a*)*bbb(b*a*)*" tomita-4-base 100))
+;; (def tomita-4 {:valid-words (gen/sample (sg/string-generator #"(a|ba|bba)*(bb|b)?") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"(b*a*)*bbb(b*a*)*") 100)})
 
-(def tomita-5 {:valid-words (gen/sample (sg/string-generator #"(aa|bb|(ab|ba)(aa|bb)*(ab|ba))*" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"(aa|bb|(ab|ba)(aa|bb)*(ab|ba))*(a|b)" 50) 100)})
+(def tomita-5 (utils/generate-word-map #"(aa|bb|(ab|ba)(aa|bb)*(ab|ba))*" #"(aa|bb|(ab|ba)(aa|bb)*(ab|ba))*(a|b)" tomita-5-base 100))
+;; (def tomita-5 {:valid-words (gen/sample (sg/string-generator #"(aa|bb|(ab|ba)(aa|bb)*(ab|ba))*") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"(aa|bb|(ab|ba)(aa|bb)*(ab|ba))*(a|b)") 100)})
 
-(def tomita-6 {:valid-words (gen/sample (sg/string-generator #"(ba|(a|bb)(ab)*(b|aa))*" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"(ba|(a|bb)(ab)*(b|aa))*(b|a)" 50) 100)})
+(def tomita-6 (utils/generate-word-map #"(ba|(a|bb)(ab)*(b|aa))*" #"(ba|(a|bb)(ab)*(b|aa))*(b|a)" tomita-6-base 100))
+;; (def tomita-6 {:valid-words (gen/sample (sg/string-generator #"(ba|(a|bb)(ab)*(b|aa))*") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"(ba|(a|bb)(ab)*(b|aa))*(b|a)") 100)})
 
-(def tomita-7 {:valid-words (gen/sample (sg/string-generator #"b*a*b*a*" 50) 100)
-               :invalid-words (gen/sample (sg/string-generator #"(b+a+){2,}|(a+b+){2,}" 50) 100)})
+(def tomita-7 (utils/generate-word-map #"b*a*b*a*" #"(b+a+){3,}|(a+b+){2,}" tomita-7-base 100))
+;; (def tomita-7 {:valid-words (gen/sample (sg/string-generator #"b*a*b*a*") 100)
+;;                :invalid-words (gen/sample (sg/string-generator #"(b+a+){2,}|(a+b+){2,}") 100)})
