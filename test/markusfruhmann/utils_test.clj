@@ -4,6 +4,7 @@
    [clojure.test.check :as check]
    [clojure.test.check.generators :as gen]
    [clojure.test.check.properties :as prop]
+   [testutils.generators :as testgen]
    [markusfruhmann.utils :as subject]))
 
 (def get-words-from-map-prop
@@ -97,12 +98,10 @@
     (:pass? (check/quick-check 100 median-prop))
     (:pass? (check/quick-check 100 median-contains-value-prop))))
 
-(def select-regex (gen/elements [#"a*" #"(b|ab)+" #"(ab)*" #"(a|b)*" #"b*(aa)+b*" #"(a|ba|bba)*" #"(ab|ba)+" #"(aa|bb)*"]))
-
 (def generate-word-map-prop
   (prop/for-all [i gen/nat
-                 reg1 select-regex
-                 reg2 select-regex]
+                 reg1 testgen/select-regex
+                 reg2 testgen/select-regex]
                 (let [m (subject/generate-word-map reg1 reg2 i)]
                   (and
                    ;; The generated arrays should be of size i
@@ -115,8 +114,8 @@
 
 (def generate-word-map-with-seed-prop
   (prop/for-all [i (gen/large-integer* {:min 10 :max 1000})
-                 reg1 select-regex
-                 reg2 select-regex
+                 reg1 testgen/select-regex
+                 reg2 testgen/select-regex
                  valid (gen/vector gen/string)
                  invalid (gen/vector gen/string)]
                 (let [m (subject/generate-word-map reg1 reg2 {:valid-words valid :invalid-words invalid} i)]

@@ -8,8 +8,7 @@
   [terminal-set]
   (rand-nth terminal-set))
 
-(defn count-tree-elements
-  [tree]
+(defn count-tree-elements [tree]
   (-> tree
       (flatten)
       (count)))
@@ -18,29 +17,32 @@
   (into []
         (keep-indexed #(when (utils/in? function-set %2) %1) (flatten tree))))
 
-(defn by-score-size
-  [m1 m2]
+(defn by-score-size [m1 m2]
   (compare [(:score m2) (:size m1)]
            [(:score m1) (:size m2)]))
 
 (defn find-with-tournament-selection
   "Chooses a random amount of programs between 2 and (/ (count population) 3)."
   [scored-population]
-  (let [shuffled (shuffle scored-population)]
-    (as-> scored-population p
-      (count p)
-      (/ p 3)
-      (rand-int p)
-      (max p 2)
-      (subvec shuffled 0 p)
-      (sort by-score-size p)
-      (first p))))
+  (when (> (count scored-population) 0)
+    (if (= 1 (count scored-population))
+      (first scored-population)
+      (let [shuffled (shuffle scored-population)]
+        (as-> scored-population p
+          (count p)
+          (/ p 3)
+          (rand-int p)
+          (max p 2)
+          (subvec shuffled 0 p)
+          (sort by-score-size p)
+          (first p))))))
 
-(defn- apply-at-tree
+(defn apply-at-tree
   "Applies func at the given index.
   The node at the index is passed in as the first parameter."
   [func index tree]
-  (if (< index (count-tree-elements tree))
+  (if (or (< index (count-tree-elements tree))
+          (not= 0 (count-tree-elements tree)))
     (loop [rem  index
            node (-> tree zip/vector-zip zip/down)]
       (if (= 0 rem)

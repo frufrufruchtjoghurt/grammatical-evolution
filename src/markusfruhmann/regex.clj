@@ -3,7 +3,8 @@
    [clojure.string :as str]
    [markusfruhmann.constants :as c]
    [markusfruhmann.generic.data :as d]
-   [markusfruhmann.utils :as utils]))
+   [markusfruhmann.utils :as utils]
+   [clojure.zip :as zip]))
 
 (declare regex-fitness
          regex-terminate?)
@@ -15,33 +16,34 @@
                                         #'regex-terminate?  ;; termination predicate
                                         ))
 
-(defn tree->regex
+(defn group-node
+  "Inserts round braces as the leftmost and rightmost sibling.
+  Return position is the sibling after the opening brace!"
+  [node]
+  (when (not (zip/branch? node))
+    (-> node
+        zip/rightmost (zip/insert-right ")")
+        zip/leftmost (zip/insert-left "("))))
+
+(defn tree->regex-str
   [tree]
-  (loop [remaining [tree]
-         result ""]
-    (let [[tree & tree-tail] remaining
-          [node & node-tail] tree]
-      (if (nil? tree)
-        result
-        (case node
-          :& (recur (concat ["("] node-tail [")"] tree-tail) result)
-          :| (let [[arg1 arg2] node-tail]
-               (recur (concat ["(" arg1 "|" arg2 ")"] tree-tail) result))
-          (:* :+ :?) (recur (concat ["("] node-tail [(name node) ")"] tree-tail) result)
-          (recur (concat node-tail tree-tail) (str/join [result node])))))))
+  (loop [node (zip/vector-zip tree)]
+    (if (zip/end? node)
+      (-> node zip/root)
+      (if (zip/branch? node)
+        (recur (zip/next node))
+        (let [value (zip/node node)]
+          (if (string? value)
+            (recur (zip/next node))
+            (case value
+              :& (-> node group-node zip/remove recur)
+              :| (-> node group-node zip/remove zip/right (zip/insert-right "|") zip/leftmost recur)
+              (-> node group-node zip/remove zip/rightmost (zip/insert-left (name value)) zip/leftmost recur))))))))
 
 (defn find-matches
   "Returns a list of the full match or nil for every word in string-list matched by regex."
-  [regex string-list]
-  (loop [remaining string-list
-         results []]
-    (let [[string & tail] remaining]
-      (if (nil? string)
-        results
-        (recur tail (as-> regex r
-                      (re-pattern r)
-                      (re-matches r string)
-                      (conj results r)))))))
+  [regex-str string-list]
+  (map #(-> regex-str re-pattern (re-matches %)) string-list))
 
 (defn regex-reducer
   "Updates the counter of a map corresponding to value."
@@ -53,7 +55,7 @@
 (defn regex-fitness
   "Scores an individual by applying it to the predefined word-map and calculating the f1-score."
   [individual word-map]
-  (let [regex (tree->regex individual)]
+  (let [regex (tree->regex-str individual)]
     (-> word-map
         (assoc :valid-words (find-matches regex (:valid-words word-map)))
         (assoc :invalid-words (find-matches regex (:invalid-words word-map)))

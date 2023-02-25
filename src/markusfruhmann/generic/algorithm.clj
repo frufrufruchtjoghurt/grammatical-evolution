@@ -74,7 +74,7 @@
   (loop [population   (if seeded-programs
                         (set seeded-programs)
                         #{})
-         remaining    (- size-of-population (count seeded-programs))
+         remaining    (- size-of-population (count population))
          full-method? false
          min-tree-depth   1
          max-tree-depth max-individual-depth
@@ -110,14 +110,10 @@
 (defn fitness-of-population
   "Evaluates the population with the given fitness-fn for a word-map."
   [fitness-fn word-map population]
-  (loop [population population
-         fitness []]
-    (if population
-      (let [[individual & rest] population
-            size                  (h/count-tree-elements individual)
-            score                 (fitness-fn individual word-map)]
-        (recur rest (conj fitness {:prog individual :size size :score score})))
-      fitness)))
+  (map (fn [e] {:prog e
+                :size (h/count-tree-elements e)
+                :score (fitness-fn e word-map)})
+       population))
 
 (defn find-individual
   "Retrieve an individual from the population with the defined selection method.
@@ -125,7 +121,7 @@
   [scored-population]
   (:prog (h/find-with-tournament-selection scored-population)))
 
-(defn- crossover
+(defn crossover
   [male male-point
    female female-point
    max-crossover-depth]
@@ -135,24 +131,35 @@
         new-female (h/insert-subtree female female-point male-subtree)]
     (h/validate-crossover male new-male female new-female max-crossover-depth)))
 
-(defn- crossover-at-function [male female function-set max-crossover-depth]
+(defn crossover-at-function [male female function-set max-crossover-depth]
   (let [male-point (rand-nth (h/count-function-points male function-set))
         female-point (rand-nth (h/count-function-points female function-set))]
     (crossover male male-point female female-point max-crossover-depth)))
 
-(defn- crossover-at-any-point [male female max-crossover-depth]
+(defn crossover-at-any-point [male female max-crossover-depth]
   (let [male-point (rand-int (h/count-tree-elements male))
         female-point (rand-int (h/count-tree-elements female))]
     (crossover male male-point female female-point max-crossover-depth)))
 
-(defn- mutate
+(defn mutate-subtree
   [{:keys [function-set arity-map terminal-set
            max-mutation-subtree-depth]}
    individual]
   (let [mutation-point (rand-int (h/count-tree-elements individual))
-        mutation-tree (create-individual-program function-set arity-map terminal-set
-                                                 max-mutation-subtree-depth true false)]
+        mutation-tree  (create-individual-program function-set arity-map terminal-set
+                                                  max-mutation-subtree-depth true false)]
     (h/insert-subtree individual mutation-point mutation-tree)))
+
+(defn mutate-replace-with-terminal
+  [{:keys [terminal-set]} individual]
+  (let [mutation-point (rand-int (h/count-tree-elements individual))
+        mutant (h/insert-subtree individual mutation-point (h/choose-from-terminal-set terminal-set))]
+    (if (= 1 (h/max-tree-depth mutant)) individual mutant)))
+
+(defn mutate [{:keys [method-of-mutation] :as config} individual]
+  (case method-of-mutation
+    :subtree (mutate-subtree config individual)
+    :delete (mutate-replace-with-terminal config individual)))
 
 (defn breed-new-population
   [{:keys [function-set
@@ -212,11 +219,13 @@
    max-generations size-of-population
    max-individual-depth word-map
    & {:keys [method-of-generation
+             method-of-mutation
              max-crossover-depth max-mutation-subtree-depth
              crossover-at-function-frac
              crossover-at-any-point-frac
              reproduction-frac]
       :or {method-of-generation :ramped
+           method-of-mutation :subtree
            max-crossover-depth max-individual-depth
            max-mutation-subtree-depth (-> max-individual-depth (* 0.5) (int))
            crossover-at-function-frac 0.45
@@ -224,6 +233,7 @@
            reproduction-frac 0.09}}]
   (let [terminal-set (utils/get-terminals-from-map word-map)
         optional {:method-of-generation method-of-generation
+                  :method-of-mutation method-of-mutation
                   :max-crossover-depth max-crossover-depth
                   :max-mutation-subtree-depth max-mutation-subtree-depth
                   :crossover-at-any-point-frac crossover-at-any-point-frac
