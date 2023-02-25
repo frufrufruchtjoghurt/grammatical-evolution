@@ -34,22 +34,25 @@
   func has to be a function which counts the positive and negative values of a list and returns them as a map.
   f1-score will define the keys for the map, so func should accept [k1 k2 map value]."
   [word-map func]
-  (let [{true-pos :true-pos
-         false-neg :false-neg} (reduce (partial func :true-pos :false-neg)
-                                       {:true-pos 0 :false-neg 0}
-                                       (word-map :valid-words))
-        {false-pos :false-pos} (reduce (partial func :false-pos :true-neg)
-                                       {:false-pos 0 :true-neg 0}
-                                       (word-map :invalid-words))
+  (let [{:keys [valid-words invalid-words]} word-map
+        valid-func                          (partial func :true-pos :false-neg)
+        {^int true-pos  :true-pos
+         ^int false-neg :false-neg}              (reduce valid-func
+                                                         {:true-pos 0 :false-neg 0}
+                                                         valid-words)
+        invalid-func                        (partial func :false-pos :true-neg)
+        {^int false-pos :false-pos}              (reduce invalid-func
+                                                         {:false-pos 0 :true-neg 0}
+                                                         invalid-words)
         ;; it is important to catch a division by 0
-        precision (if (> (+ true-pos false-pos) 0)
-                    (/ true-pos
-                       (+ true-pos false-pos))
-                    0)
-        recall (if (> (+ true-pos false-neg) 0)
-                 (/ true-pos
-                    (+ true-pos false-neg))
-                 0)]
+        ^float precision                           (if (> (+ true-pos false-pos) 0)
+                                                     (/ true-pos
+                                                        (+ true-pos false-pos))
+                                                     0)
+        ^float recall                              (if (> (+ true-pos false-neg) 0)
+                                                     (/ true-pos
+                                                        (+ true-pos false-neg))
+                                                     0)]
     (if (> (+ precision recall) 0)
       (* 2 (/ (* precision recall)
               (+ precision recall)))

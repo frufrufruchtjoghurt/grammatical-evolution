@@ -56,8 +56,8 @@
                   (and (= (subject/f1-score m boolean-reducer) (subject/f1-score ms boolean-reducer))
                        (= (subject/f1-score m boolean-reducer)
                           (let [tpc (count t-pos) fpc (count f-pos) fnc (count f-neg)
-                                precision (if (> (+ tpc fpc) 0) (/ tpc (+ tpc fpc)) 0)
-                                recall (if (> (+ tpc fnc) 0) (/ tpc (+ tpc fnc)) 0)]
+                                ^float precision (if (> (+ tpc fpc) 0) (/ tpc (+ tpc fpc)) 0)
+                                ^float recall (if (> (+ tpc fnc) 0) (/ tpc (+ tpc fnc)) 0)]
                             (if (> (+ precision recall) 0)
                               (* 2 (/ (* precision recall) (+ precision recall)))
                               0)))))))
@@ -77,7 +77,7 @@
   (is (nil? (subject/median []))))
 
 (def list-with-odd-size
-  (gen/such-that #(= 1 (mod (count %) 2)) (gen/vector gen/large-integer)))
+  (gen/such-that #(= 1 (mod (count %) 2)) (gen/vector gen/large-integer) 50))
 
 (def median-prop
   (prop/for-all [v (gen/vector gen/large-integer)]

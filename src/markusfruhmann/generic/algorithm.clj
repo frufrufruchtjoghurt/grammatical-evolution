@@ -105,15 +105,15 @@
                  ;; switch the generation method for ramped-half-and-half
                  (not full-method?)
                  min-tree-depth max-tree-depth 0)))
-      population)))
+      (into [] population))))
 
 (defn fitness-of-population
   "Evaluates the population with the given fitness-fn for a word-map."
   [fitness-fn word-map population]
-  (map (fn [e] {:prog e
-                :size (h/count-tree-elements e)
-                :score (fitness-fn e word-map)})
-       population))
+  (pmap (fn [e] {:prog e
+                 :size (h/count-tree-elements e)
+                 :score (fitness-fn e word-map)})
+        population))
 
 (defn find-individual
   "Retrieve an individual from the population with the defined selection method.
@@ -200,13 +200,13 @@
    word-map]
   (loop [generation 0
          current-population population
-         best-of-run (first population)]
+         best-of-run (nth population 0)]
     (let [fitness-sorted (->> current-population
                               (fitness-of-population fitness-fn
                                                      word-map)
                               (sort h/by-score-size))
-          best-of-gen (first fitness-sorted)
-          best-of-run (first (sort h/by-score-size [best-of-run best-of-gen]))]
+          best-of-gen (nth fitness-sorted 0)
+          best-of-run (nth (sort h/by-score-size [best-of-run best-of-gen]) 0)]
       (println "Generation" generation "'s best individual:")
       (println best-of-gen)
       (if (or (>= generation max-generations) (terminate? fitness-sorted))

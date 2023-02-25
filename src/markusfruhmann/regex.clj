@@ -23,13 +23,13 @@
   (when (not (zip/branch? node))
     (-> node
         zip/rightmost (zip/insert-right ")")
-        zip/leftmost (zip/insert-left "("))))
+        zip/leftmost (zip/insert-left "(?>"))))
 
 (defn tree->regex-str
   [tree]
   (loop [node (zip/vector-zip tree)]
     (if (zip/end? node)
-      (-> node zip/root)
+      (-> node zip/root flatten str/join)
       (if (zip/branch? node)
         (recur (zip/next node))
         (let [value (zip/node node)]
@@ -43,7 +43,8 @@
 (defn find-matches
   "Returns a list of the full match or nil for every word in string-list matched by regex."
   [regex-str string-list]
-  (map #(-> regex-str re-pattern (re-matches %)) string-list))
+  (let [pattern (re-pattern regex-str)]
+    (pmap #(-> pattern (re-matches %) (nth 0 nil)) string-list)))
 
 (defn regex-reducer
   "Updates the counter of a map corresponding to value."
@@ -55,17 +56,17 @@
 (defn regex-fitness
   "Scores an individual by applying it to the predefined word-map and calculating the f1-score."
   [individual word-map]
-  (let [regex (tree->regex-str individual)]
+  (let [regex-str (tree->regex-str individual)]
     (-> word-map
-        (assoc :valid-words (find-matches regex (:valid-words word-map)))
-        (assoc :invalid-words (find-matches regex (:invalid-words word-map)))
+        (assoc :valid-words (find-matches regex-str (:valid-words word-map)))
+        (assoc :invalid-words (find-matches regex-str (:invalid-words word-map)))
         (utils/f1-score regex-reducer))))
 
 (defn regex-terminate?
   "Is true if the best individual has a score of 1 and is smaller than the median of the generation."
   [sorted-generation]
   (let [best-of-gen (first sorted-generation)]
-    (when (= (:score best-of-gen) 1N)
+    (when (>= (:score best-of-gen) 0.91)
       (->> sorted-generation
            (map #(:size %))
            (utils/median)

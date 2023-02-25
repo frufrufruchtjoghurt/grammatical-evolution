@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [test])
   (:require [org.corfield.build :as bb]))
 
-(def lib 'net.clojars.markusfruhmann/grammatical-evolution)
+(def lib 'markusfruhmann/grammatical-evolution)
 (def version "0.1.0-SNAPSHOT")
 (def main 'markusfruhmann.grammatical-evolution)
 
