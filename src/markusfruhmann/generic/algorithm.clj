@@ -32,6 +32,7 @@
         (let [choice (rand-int (+ (count function-set)
                                   (count terminal-set)))]
           (if (< choice (count function-set))
+            ;; Select a function from the function set
             (let [function (nth function-set choice)
                   arity (arity-map function)]
               (into []

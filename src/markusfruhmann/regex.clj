@@ -23,7 +23,7 @@
   (when (not (zip/branch? node))
     (-> node
         zip/rightmost (zip/insert-right ")")
-        zip/leftmost (zip/insert-left "(?>"))))
+        zip/leftmost (zip/insert-left "(?:"))))
 
 (defn tree->regex-str
   [tree]
@@ -44,7 +44,7 @@
   "Returns a list of the full match or nil for every word in string-list matched by regex."
   [regex-str string-list]
   (let [pattern (re-pattern regex-str)]
-    (pmap #(-> pattern (re-matches %) (nth 0 nil)) string-list)))
+    (map #(-> pattern (re-matches %) (nth 0 nil)) string-list)))
 
 (defn regex-reducer
   "Updates the counter of a map corresponding to value."
