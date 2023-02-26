@@ -80,3 +80,10 @@
          invalid (:invalid-words word-map)]
      {:valid-words   (concat valid (gen/sample (sg/string-generator valid-regex) (- amount (count valid))))
       :invalid-words (concat invalid (gen/sample (sg/string-generator invalid-regex) (- amount (count invalid))))})))
+
+(defn boolean-reducer
+  "Updates the counter of a map corresponding to value."
+  [k1 k2 map value]
+  (if value
+    (assoc map k1 (inc (map k1)))
+    (assoc map k2 (inc (map k2)))))

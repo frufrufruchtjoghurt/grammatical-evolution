@@ -1,11 +1,11 @@
-(ns markusfruhmann.regex-test
+(ns markusfruhmann.regex.regex-test
   (:require
    [clojure.test :refer [are deftest is]]
    [clojure.test.check :as check]
    [clojure.test.check.generators :as gen]
    [clojure.test.check.properties :as prop]
-   [markusfruhmann.constants :as const]
-   [markusfruhmann.regex :as subject]
+   [markusfruhmann.tomita :as const]
+   [markusfruhmann.regex.regex :as subject]
    [testutils.generators :as testgen]
    [miner.strgen :as sg]
    [clojure.zip :as zip]))

@@ -219,21 +219,23 @@
   [config
    max-generations size-of-population
    max-individual-depth word-map
-   & {:keys [method-of-generation
+   & {:keys [terminal-set
+             method-of-generation
              method-of-mutation
              max-crossover-depth max-mutation-subtree-depth
              crossover-at-function-frac
              crossover-at-any-point-frac
              reproduction-frac]
-      :or {method-of-generation :ramped
+      :or {terminal-set (utils/get-terminals-from-map word-map)
+           method-of-generation :ramped
            method-of-mutation :subtree
            max-crossover-depth max-individual-depth
            max-mutation-subtree-depth (-> max-individual-depth (* 0.5) (int))
            crossover-at-function-frac 0.45
            crossover-at-any-point-frac 0.45
            reproduction-frac 0.09}}]
-  (let [terminal-set (utils/get-terminals-from-map word-map)
-        optional {:method-of-generation method-of-generation
+  (let [optional {:terminal-set terminal-set
+                  :method-of-generation method-of-generation
                   :method-of-mutation method-of-mutation
                   :max-crossover-depth max-crossover-depth
                   :max-mutation-subtree-depth max-mutation-subtree-depth
@@ -242,8 +244,7 @@
                   :reproduction-frac reproduction-frac}
         gp-config (-> config
                       (merge optional)
-                      (assoc :max-individual-depth max-individual-depth)
-                      (assoc :terminal-set terminal-set))
+                      (assoc :max-individual-depth max-individual-depth))
         population (create-population gp-config
                                       size-of-population)
         best-of-run (execute-generations gp-config population max-generations word-map)]

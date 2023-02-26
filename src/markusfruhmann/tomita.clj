@@ -1,16 +1,6 @@
-(ns markusfruhmann.constants
+(ns markusfruhmann.tomita
   (:require
    [markusfruhmann.utils :as utils]))
-
-(def functions-regex
-  [:* :+ :? :& :|])
-
-(def arities-regex
-  {:* 1
-   :+ 1
-   :? 1
-   :& 2
-   :| 2})
 
 ;; Each tomita grammars valid-words are defined using a regex representation from
 ;; Artificial Neural Networks and Machine Learning – ICANN 2019: Theoretical Neural Computation

@@ -1,20 +1,8 @@
-(ns markusfruhmann.regex
+(ns markusfruhmann.regex.regex
   (:require
    [clojure.string :as str]
-   [markusfruhmann.constants :as c]
-   [markusfruhmann.generic.data :as d]
    [markusfruhmann.utils :as utils]
    [clojure.zip :as zip]))
-
-(declare regex-fitness
-         regex-terminate?)
-
-(def default-regex-config (d/->GPConfig c/functions-regex ;; function set
-                                        c/arities-regex   ;; arity set
-                                        nil               ;; seeded programs
-                                        #'regex-fitness     ;; fitness function
-                                        #'regex-terminate?  ;; termination predicate
-                                        ))
 
 (defn group-node
   "Inserts round braces as the leftmost and rightmost sibling.
@@ -46,13 +34,6 @@
   (let [pattern (re-pattern regex-str)]
     (map #(-> pattern (re-matches %) (nth 0 nil)) string-list)))
 
-(defn regex-reducer
-  "Updates the counter of a map corresponding to value."
-  [k1 k2 map value]
-  (if value
-    (assoc map k1 (inc (map k1)))
-    (assoc map k2 (inc (map k2)))))
-
 (defn regex-fitness
   "Scores an individual by applying it to the predefined word-map and calculating the f1-score."
   [individual word-map]
@@ -60,10 +41,10 @@
     (-> word-map
         (assoc :valid-words (find-matches regex-str (:valid-words word-map)))
         (assoc :invalid-words (find-matches regex-str (:invalid-words word-map)))
-        (utils/f1-score regex-reducer))))
+        (utils/f1-score utils/boolean-reducer))))
 
 (defn regex-terminate?
-  "Is true if the best individual has a score of 1 and is smaller than the median of the generation."
+  "Is true if the best individual has a score higher than 91% and is smaller than the median of the generation."
   [sorted-generation]
   (let [best-of-gen (first sorted-generation)]
     (when (>= (:score best-of-gen) 0.91)
