@@ -1,6 +1,6 @@
 (ns markusfruhmann.regular-grammar.helper-test
   (:require
-   [clojure.test :refer [are deftest]]
+   [clojure.test :refer [are deftest is]]
    [clojure.test.check :as check]
    [clojure.test.check.generators :as gen]
    [clojure.test.check.properties :as prop]
@@ -22,17 +22,34 @@
     (results/pass? (check/quick-check 100 generate-non-terminals-prop))))
 
 (def create-rule-prop
-  (prop/for-all [nt (gen/not-empty gen/string)
+  (prop/for-all [nt gen/char
                  t (gen/not-empty gen/string)]
                 (let [res (subject/create-rule nt t)]
-                  (= (+ (count nt) (count t) 2) (count res)))))
+                  (are [key] (contains? res key)
+                    :non-terminal
+                    :terminal)
+                  (are [expected key] (= expected (key res))
+                    (keyword (str nt)) :non-terminal
+                    t :terminal
+                    nil :reference
+                    nil :epsilon?))))
 
 (def create-rule-with-ref-prop
-  (prop/for-all [nt (gen/not-empty gen/string)
+  (prop/for-all [nt gen/char
                  t (gen/not-empty gen/string)
-                 ref (gen/not-empty gen/string)]
-                (let [res (subject/create-rule nt t ref)]
-                  (= (+ (count nt) (count t) (count ref) 3) (count res)))))
+                 ref gen/char
+                 e? gen/boolean]
+                (let [res (subject/create-rule nt t ref :epsilon? e?)]
+                  (are [key] (contains? res key)
+                    :non-terminal
+                    :terminal
+                    :reference
+                    :epsilon?)
+                  (are [expected key] (= expected (key res))
+                    (keyword (str nt)) :non-terminal
+                    t :terminal
+                    (keyword (str ref)) :reference
+                    e? :epsilon?))))
 
 (deftest create-rule-test-check-props
   (are [pass?] pass?
@@ -53,7 +70,7 @@
   (prop/for-all [nt (gen/vector gen/string)
                  t (gen/vector gen/char)]
                 (let [res (subject/generate-rule-set nt t)]
-                  (= (count res) (* nt (+ nt 2))))))
+                  (= (count res) (+ (* 2 nt nt) nt)))))
 
 (deftest generate-rule-set-test-check-props
   (are [pass?] pass?

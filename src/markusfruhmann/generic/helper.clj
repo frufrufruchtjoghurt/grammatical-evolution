@@ -81,11 +81,11 @@
    max-crossover-depth]
   (let [new-m-depth (max-tree-depth new-male)
         new-f-depth (max-tree-depth new-female)]
-    [(if (or (= 1 new-m-depth)
+    [(if (or (>= 1 new-m-depth)
              (> new-m-depth max-crossover-depth))
        male
        new-male)
-     (if (or (= 1 new-f-depth)
+     (if (or (>= 1 new-f-depth)
              (> new-f-depth max-crossover-depth))
        female
        new-female)]))

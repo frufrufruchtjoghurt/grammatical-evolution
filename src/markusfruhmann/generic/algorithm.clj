@@ -99,7 +99,7 @@
                  ;; if more than 20 attempts fail, the minimum depth should be increased
                  (if (> current-attempts 20) (inc min-tree-depth) min-tree-depth)
                  ;; account for adaptation of min-tree-depth
-                 (max max-tree-depth (inc min-tree-depth))
+                 (if (= max-tree-depth (inc min-tree-depth)) (inc max-tree-depth) (max max-tree-depth (inc min-tree-depth)))
                  (inc current-attempts))
           (recur (conj population program)
                  (dec remaining)
@@ -111,10 +111,10 @@
 (defn fitness-of-population
   "Evaluates the population with the given fitness-fn for a word-map."
   [fitness-fn word-map population]
-  (pmap (fn [e] {:prog e
-                 :size (h/count-tree-elements e)
-                 :score (fitness-fn e word-map)})
-        population))
+  (map (fn [e] {:prog e
+                :size (h/count-tree-elements e)
+                :score (fitness-fn e word-map)})
+       population))
 
 (defn find-individual
   "Retrieve an individual from the population with the defined selection method.
@@ -148,14 +148,15 @@
    individual]
   (let [mutation-point (rand-int (h/count-tree-elements individual))
         mutation-tree  (create-individual-program function-set arity-map terminal-set
-                                                  max-mutation-subtree-depth true false)]
-    (h/insert-subtree individual mutation-point mutation-tree)))
+                                                  max-mutation-subtree-depth true false)
+        mutant (h/insert-subtree individual mutation-point mutation-tree)]
+    (if (>= 1 (h/max-tree-depth mutant)) individual mutant)))
 
 (defn mutate-replace-with-terminal
   [{:keys [terminal-set]} individual]
   (let [mutation-point (rand-int (h/count-tree-elements individual))
         mutant (h/insert-subtree individual mutation-point (h/choose-from-terminal-set terminal-set))]
-    (if (= 1 (h/max-tree-depth mutant)) individual mutant)))
+    (if (>= 1 (h/max-tree-depth mutant)) individual mutant)))
 
 (defn mutate [{:keys [method-of-mutation] :as config} individual]
   (case method-of-mutation

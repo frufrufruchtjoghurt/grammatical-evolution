@@ -1,7 +1,8 @@
 (ns markusfruhmann.utils
   (:require
    [clojure.test.check.generators :as gen]
-   [miner.strgen :as sg]))
+   [miner.strgen :as sg]
+   [clojure.zip :as zip]))
 
 (defn get-words-from-map
   "Concatenates a map of :valid and :invalid words."
@@ -28,6 +29,14 @@
   "Returns true if the collection contains the given element."
   [coll element]
   (not= (some #(= element %) coll) nil))
+
+(defn map-tree [f tree]
+  (loop [node (zip/vector-zip tree)]
+    (if (zip/end? node)
+      (zip/root node)
+      (if (zip/branch? node)
+        (recur (zip/next node))
+        (-> node (zip/edit f) zip/next recur)))))
 
 (defn f1-score
   "Calculates the f1-score for the result after evaluating :valid-words and :invalid-words of word-map.
