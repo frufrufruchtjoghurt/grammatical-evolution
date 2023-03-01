@@ -32,3 +32,6 @@
            (map #(:size %))
            (utils/median)
            (<= (:size best-of-gen))))))
+
+(defn regex-pretty-print [{:keys [prog size score]}]
+  (println "Regex:" (tree->regex-str prog) "Size:" size "Score:" score))

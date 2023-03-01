@@ -197,7 +197,7 @@
           new-population)))))
 
 (defn execute-generations
-  [{:keys [fitness-fn terminate?] :as config}
+  [{:keys [fitness-fn terminate? pretty-print] :as config}
    population max-generations
    word-map]
   (loop [generation 0
@@ -210,7 +210,7 @@
           best-of-gen (nth fitness-sorted 0)
           best-of-run (nth (sort h/by-score-size [best-of-run best-of-gen]) 0)]
       (println "Generation" generation "'s best individual:")
-      (println best-of-gen)
+      (pretty-print best-of-gen)
       (if (or (>= generation max-generations) (terminate? fitness-sorted))
         best-of-run
         (let [next-population (breed-new-population config fitness-sorted)]
@@ -250,4 +250,4 @@
                                       size-of-population)
         best-of-run (execute-generations gp-config population max-generations word-map)]
     (println "Best individual of this run:")
-    (println best-of-run)))
+    ((:pretty-print config) best-of-run)))

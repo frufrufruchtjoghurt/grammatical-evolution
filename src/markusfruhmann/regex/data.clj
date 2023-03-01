@@ -18,4 +18,4 @@
                                         nil               ;; seeded programs
                                         #'reg/regex-fitness     ;; fitness function
                                         #'reg/regex-terminate?  ;; termination predicate
-                                        ))
+                                        #'reg/regex-pretty-print))

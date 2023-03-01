@@ -4,4 +4,5 @@
                      arity-map
                      seeded-programs
                      fitness-fn
-                     terminate?])
+                     terminate?
+                     pretty-print])

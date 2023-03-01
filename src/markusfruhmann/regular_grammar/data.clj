@@ -33,4 +33,4 @@
                                           nil                       ;; seeded programs
                                           #'gram/grammar-fitness    ;; fitness function
                                           #'gram/grammar-terminate? ;; termination predicate
-                                          ))
+                                          #'gram/grammar-pretty-print))

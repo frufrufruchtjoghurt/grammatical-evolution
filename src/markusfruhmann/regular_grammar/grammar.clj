@@ -58,3 +58,6 @@
            (map #(:size %))
            (utils/median)
            (<= (:size best-of-gen))))))
+
+(defn grammar-pretty-print [{:keys [prog size score]}]
+  (println "Grammar:\n" (tree->grammar prog) "\nSize:" size "Score:" score))
