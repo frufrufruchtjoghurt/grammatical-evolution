@@ -202,18 +202,17 @@
    word-map]
   (loop [generation 0
          current-population population
-         best-of-run (nth population 0)]
-    (let [fitness-sorted (->> current-population
-                              (fitness-of-population fitness-fn
-                                                     word-map)
-                              (sort h/by-score-size))
-          best-of-gen (nth fitness-sorted 0)
-          best-of-run (nth (sort h/by-score-size [best-of-run best-of-gen]) 0)]
+         best-of-run nil]
+    (let [population-fitness (->> current-population
+                                  (fitness-of-population fitness-fn
+                                                         word-map))
+          best-of-gen (h/get-best-individual population-fitness)
+          best-of-run (if (some? best-of-run) (h/get-best-individual [best-of-run best-of-gen]) best-of-gen)]
       (println "Generation" generation "'s best individual:")
       (pretty-print best-of-gen)
-      (if (or (>= generation max-generations) (terminate? fitness-sorted))
+      (if (or (>= generation max-generations) (terminate? best-of-gen population-fitness))
         best-of-run
-        (let [next-population (breed-new-population config fitness-sorted)]
+        (let [next-population (breed-new-population config population-fitness)]
           (recur (inc generation) next-population best-of-run))))))
 
 (defn run-genetic-programming

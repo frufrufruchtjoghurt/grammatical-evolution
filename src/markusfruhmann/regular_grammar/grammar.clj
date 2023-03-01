@@ -51,13 +51,12 @@
 
 (defn grammar-terminate?
   "Is true if the best individual has a score of 99% and is smaller than the median of the generation."
-  [sorted-generation]
-  (let [best-of-gen (first sorted-generation)]
-    (when (>= (:score best-of-gen) 0.99)
-      (->> sorted-generation
-           (map #(:size %))
-           (utils/median)
-           (<= (:size best-of-gen))))))
+  [best-of-gen population]
+  (when (>= (:score best-of-gen) 0.99)
+    (->> population
+         (map #(:size %))
+         (utils/median)
+         (<= (:size best-of-gen)))))
 
 (defn grammar-pretty-print [{:keys [prog size score]}]
   (println "Grammar:\n" (tree->grammar prog) "\nSize:" size "Score:" score))

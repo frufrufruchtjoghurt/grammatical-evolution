@@ -25,13 +25,12 @@
 
 (defn regex-terminate?
   "Is true if the best individual has a score higher than 99% and is smaller than the median of the generation."
-  [sorted-generation]
-  (let [best-of-gen (first sorted-generation)]
-    (when (>= (:score best-of-gen) 0.99)
-      (->> sorted-generation
-           (map #(:size %))
-           (utils/median)
-           (<= (:size best-of-gen))))))
+  [best-of-gen population]
+  (when (>= (:score best-of-gen) 0.99)
+    (->> population
+         (map #(:size %))
+         (utils/median)
+         (<= (:size best-of-gen)))))
 
 (defn regex-pretty-print [{:keys [prog size score]}]
   (println "Regex:" (tree->regex-str prog) "Size:" size "Score:" score))
