@@ -6,7 +6,7 @@
 
 (defn tree->regex-str
   [tree]
-  (-> tree s/simplify-tree s/tree->regex-vector flatten str/join))
+  (-> tree s/tree->regex-vector flatten str/join))
 
 (defn find-matches
   "Returns a list of the full match or nil for every word in string-list matched by regex."

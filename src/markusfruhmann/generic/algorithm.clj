@@ -70,7 +70,8 @@
   Max-tree-depth sets an initial maximum tree depth for all programs."
   [{:keys [method-of-generation
            function-set arity-map terminal-set
-           seeded-programs max-individual-depth]}
+           seeded-programs max-individual-depth
+           optimizer]}
    size-of-population]
   (loop [population   (if seeded-programs
                         (set seeded-programs)
@@ -81,18 +82,19 @@
          max-tree-depth max-individual-depth
          current-attempts 0]
     (if (> remaining 0)
-      (let [program (create-individual-program
-                     function-set arity-map terminal-set
-                     (case method-of-generation
-                       (:full :grow) max-tree-depth
-                       (+ min-tree-depth
-                          (mod remaining
-                               (- max-tree-depth min-tree-depth))))
-                     true
-                     (case method-of-generation
-                       :full true
-                       :grow false
-                       full-method?))]
+      (let [program (optimizer
+                     (create-individual-program
+                      function-set arity-map terminal-set
+                      (case method-of-generation
+                        (:full :grow) max-tree-depth
+                        (+ min-tree-depth
+                           (mod remaining
+                                (- max-tree-depth min-tree-depth))))
+                      true
+                      (case method-of-generation
+                        :full true
+                        :grow false
+                        full-method?)))]
         (if (contains? population program)
           ;; if the program already exists, we have to generate a new one
           (recur population remaining full-method?
@@ -168,7 +170,8 @@
            max-crossover-depth
            crossover-at-function-frac
            crossover-at-any-point-frac
-           reproduction-frac]
+           reproduction-frac
+           optimizer]
     :as config}
    scored-population]
   (let [population-size (count scored-population)]
@@ -184,7 +187,7 @@
                                       (crossover-at-function individual (find-individual scored-population)
                                                              function-set max-crossover-depth)
                                       (crossover-at-any-point individual (find-individual scored-population) max-crossover-depth))]
-                    (recur (concat new-population individuals)))
+                    (recur (concat new-population (map optimizer individuals))))
                   (< frac (+ reproduction-frac
                              crossover-at-function-frac
                              crossover-at-any-point-frac))
@@ -192,6 +195,7 @@
                   :else
                   (->> individual
                        (mutate config)
+                       optimizer
                        (conj new-population)
                        recur)))
           new-population)))))

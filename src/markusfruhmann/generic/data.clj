@@ -5,4 +5,5 @@
                      seeded-programs
                      fitness-fn
                      terminate?
+                     optimizer
                      pretty-print])

@@ -1,6 +1,7 @@
 (ns markusfruhmann.regex.data
   (:require
    [markusfruhmann.generic.data :as d]
+   [markusfruhmann.regex.simplify :as s]
    [markusfruhmann.regex.regex :as reg]))
 
 (def functions-regex
@@ -18,4 +19,5 @@
                                         nil               ;; seeded programs
                                         #'reg/regex-fitness     ;; fitness function
                                         #'reg/regex-terminate?  ;; termination predicate
+                                        #'s/simplify-tree
                                         #'reg/regex-pretty-print))
