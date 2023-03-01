@@ -6,7 +6,7 @@
 
 (defn tree->regex-str
   [tree]
-  (-> tree s/tree->regex-vector flatten str/join))
+  (-> tree s/simplify-tree s/tree->regex-vector flatten str/join))
 
 (defn find-matches
   "Returns a list of the full match or nil for every word in string-list matched by regex."
@@ -17,7 +17,7 @@
 (defn regex-fitness
   "Scores an individual by applying it to the predefined word-map and calculating the f1-score."
   [individual word-map]
-  (let [regex-str (-> individual s/simplify-tree tree->regex-str)]
+  (let [regex-str (-> individual tree->regex-str)]
     (-> word-map
         (assoc :valid-words (find-matches regex-str (:valid-words word-map)))
         (assoc :invalid-words (find-matches regex-str (:invalid-words word-map)))
