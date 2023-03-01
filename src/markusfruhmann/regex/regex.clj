@@ -12,7 +12,7 @@
   "Returns a list of the full match or nil for every word in string-list matched by regex."
   [regex-str string-list]
   (let [pattern (re-pattern regex-str)]
-    (map #(-> pattern (re-matches %) (nth 0 nil)) string-list)))
+    (map #(-> pattern (re-matches %)) string-list)))
 
 (defn regex-fitness
   "Scores an individual by applying it to the predefined word-map and calculating the f1-score."
@@ -24,10 +24,10 @@
         (utils/f1-score utils/boolean-reducer))))
 
 (defn regex-terminate?
-  "Is true if the best individual has a score higher than 91% and is smaller than the median of the generation."
+  "Is true if the best individual has a score higher than 99% and is smaller than the median of the generation."
   [sorted-generation]
   (let [best-of-gen (first sorted-generation)]
-    (when (>= (:score best-of-gen) 0.91)
+    (when (>= (:score best-of-gen) 0.99)
       (->> sorted-generation
            (map #(:size %))
            (utils/median)
