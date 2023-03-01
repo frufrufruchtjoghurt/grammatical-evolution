@@ -1,6 +1,5 @@
 (ns markusfruhmann.regular-grammar.helper
   (:require
-   [clojure.string :as str]
    [markusfruhmann.utils :as utils]))
 
 (defn generate-non-terminals
