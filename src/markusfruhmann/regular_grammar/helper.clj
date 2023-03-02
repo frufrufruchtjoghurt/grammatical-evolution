@@ -15,23 +15,20 @@
    {:non-terminal (keyword (str non-terminal))
     :terminal terminal})
 
-  ([non-terminal terminal non-terminal-ref
-    & {:keys [epsilon?]}]
+  ([non-terminal terminal non-terminal-ref]
    {:non-terminal (keyword (str non-terminal))
     :terminal terminal
-    :reference (keyword (str non-terminal-ref))
-    :epsilon? epsilon?}))
+    :reference (keyword (str non-terminal-ref))}))
 
 (defn create-rules-for-refs [non-terminal terminal non-terminal-refs]
-  (apply conj
-         (map #(create-rule non-terminal terminal %) non-terminal-refs)
-         (map #(create-rule non-terminal terminal % :epsilon? true) non-terminal-refs)))
+  (map #(create-rule non-terminal terminal %) non-terminal-refs))
 
 (defn generate-rule-set [non-terminal-set terminal-set]
   (loop [[nt-head & nt-tail] non-terminal-set
          [t-head & t-tail]   terminal-set
          result              []]
-    (let [basic-rules [(create-rule nt-head t-head)]
+    (let [basic-rules [(create-rule nt-head t-head)
+                       (create-rule nt-head "epsilon")]
           ref-rules   (create-rules-for-refs nt-head t-head non-terminal-set)
           new-rules   (apply conj basic-rules ref-rules)]
       (cond (and nt-tail t-tail)

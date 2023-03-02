@@ -23,16 +23,42 @@
         unresolved (reduce #(if (contains? non-terminals %2) %1 (conj %1 %2)) #{} references)]
     (utils/map-tree #(if (contains? unresolved (:reference %)) (assoc % :reference nil) %) tree)))
 
-(defn node->rule [{:keys [non-terminal terminal
-                          reference epsilon?]}]
-  (str/join [(name non-terminal) " = '" terminal "'" (when reference (name reference)) (when epsilon? " | epsilon") ";"]))
+(defn get-rules-by-non-terminal [tree]
+  (as-> tree t
+    (flatten t)
+    (group-by :non-terminal t)
+    (dissoc t nil)))
+
+(defn reduce-rules [rules]
+  (reduce (fn [m {:keys [non-terminal terminal reference]}]
+            (-> m
+                (assoc :non-terminal non-terminal)
+                (assoc :rules (conj (:rules m) {:terminal terminal
+                                                :reference reference}))))
+          {:non-terminal nil
+           :rules #{}}
+          rules))
+
+(defn format-rules [rules]
+  (map (fn [{:keys [terminal reference]}]
+         (cond reference
+               (format "'%s'%s" terminal (name reference))
+               (= "epsilon" terminal)
+               terminal
+               :else
+               (format "'%s'" terminal)))
+       rules))
+
+(defn node->rule [{:keys [non-terminal rules]}]
+  (format "%s = %s;" (name non-terminal) (str/join "|" (format-rules rules))))
 
 (defn tree->grammar [tree]
   (let [clean-tree (remove-unsolved-references tree)]
     (->> clean-tree
-         flatten
-         (map #(if (map? %) (node->rule %) nil))
-         (remove nil?)
+         get-rules-by-non-terminal
+         (map (fn [[_ r]] (reduce-rules r)))
+         (into [])
+         (map #(node->rule %))
          (str/join "\n"))))
 
 (defn find-matches
