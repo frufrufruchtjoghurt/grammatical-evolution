@@ -1,6 +1,7 @@
 (ns markusfruhmann.generic.algorithm
   (:require
    [markusfruhmann.generic.helper :as h]
+   [markusfruhmann.generic.data :as d]
    [markusfruhmann.utils :as utils]))
 
 (declare create-arguments-for-function)
@@ -113,9 +114,9 @@
 (defn fitness-of-population
   "Evaluates the population with the given fitness-fn for a word-map."
   [fitness-fn word-map population]
-  (map (fn [e] {:prog e
-                :size (h/count-tree-elements e)
-                :score (fitness-fn e word-map)})
+  (map (fn [e] (d/->GPResult e
+                             (h/count-tree-elements e)
+                             (fitness-fn e word-map)))
        population))
 
 (defn find-individual

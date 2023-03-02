@@ -17,17 +17,11 @@
   (into []
         (keep-indexed #(when (utils/in? function-set %2) %1) (flatten tree))))
 
-;; TODO: test
-(defn max-by-score-size [m1 m2]
-  (let [score1 (:score m1) score2 (:score m2)]
-    (if (> score2 score1)
-      m2
-      (if (== score1 score2)
-        (min-key :size m1 m2)
-        m1))))
+(defn max-by-compare [r1 r2]
+  (if (pos? (compare r1 r2)) r1 r2))
 
 (defn get-best-individual [population]
-  (reduce max-by-score-size population))
+  (reduce max-by-compare population))
 
 (defn find-with-tournament-selection
   "Chooses a random amount of programs between 2 and (/ (count population) 3)."
