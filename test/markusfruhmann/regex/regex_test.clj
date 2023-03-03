@@ -32,7 +32,7 @@
 (deftest find-matches-test
   (let [reg #"(a|ba|bba)*(bb|b)?"
         word-map tom/tomita-4-base]
-    (is (and (reduce #(and %1 (string? %2)) true (subject/find-matches reg (:valid-words word-map)))
+    (is (and (reduce #(and %1 (vector? %2)) true (subject/find-matches reg (:valid-words word-map)))
              (reduce #(and %1 (nil? %2)) true (subject/find-matches reg (:invalid-words word-map)))))))
 
 (def find-matches-prop

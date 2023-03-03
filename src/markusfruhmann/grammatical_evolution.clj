@@ -19,12 +19,62 @@
 
 (ns markusfruhmann.grammatical-evolution)
 
+(def tomita-word-lists
+  [[t/tomita-1 gramd/tomita-1-terminal-set]
+   [t/tomita-2 gramd/tomita-2-terminal-set]
+   [t/tomita-3 gramd/tomita-3-terminal-set]
+   [t/tomita-4 gramd/tomita-4-terminal-set]
+   [t/tomita-5 gramd/tomita-5-terminal-set]
+   [t/tomita-6 gramd/tomita-6-terminal-set]
+   [t/tomita-7 gramd/tomita-7-terminal-set]])
+
+(defn print-results [best-of-regex best-of-grammar]
+  (println "====================================================================================================")
+  (println "RESULTS:")
+  (println "\nREGEX")
+  ((.pretty-print regd/default-regex-config) best-of-regex)
+  (println "\nGRAMMAR")
+  ((.pretty-print gramd/default-grammar-config) best-of-grammar))
+
+(defn execute-regex [tomita-words]
+  (g/run-genetic-programming regd/default-regex-config 100 200 10 tomita-words :method-of-mutation :delete))
+
+(defn execute-grammar [tomita-words terminal-set]
+  (g/run-genetic-programming gramd/default-grammar-config 100 200 10 tomita-words :terminal-set terminal-set))
+
+(defn execute-all-and-print []
+  (let [results (map (fn [[tom gram-t]] {:regex   (execute-regex tom)
+                                         :grammar (execute-grammar tom gram-t)}) tomita-word-lists)]
+    (loop [results results
+           cnt 1]
+      (println "====================================================================================================")
+      (println "Tomita Grammar" cnt)
+      (let [[{:keys [regex grammar]} & rest] results]
+        (print-results regex grammar)
+        (when rest
+          (recur rest (inc cnt)))))))
+
 (defn -main
-  "Main entrypoint. Accepts a struct with a list of :valid-words and :invalid-words"
+  "Main entrypoint. Accepts a tomita grammar like 'tomita-1' and starts execution with the
+  specified parameters."
   [& args]
   (if (seq? args)
     (let [tomita (first args)]
       (case tomita
-        "tomita-1" (g/run-genetic-programming regd/default-regex-config 30 50 5 t/tomita-1 :method-of-mutation :delete)
+        "tomita-1" (print-results (execute-regex t/tomita-1)
+                                  (execute-grammar t/tomita-1 gramd/tomita-1-terminal-set))
+        "tomita-2" (print-results (execute-regex t/tomita-2)
+                                  (execute-grammar t/tomita-2 gramd/tomita-2-terminal-set))
+        "tomita-3" (print-results (execute-regex t/tomita-3)
+                                  (execute-grammar t/tomita-3 gramd/tomita-3-terminal-set))
+        "tomita-4" (print-results (execute-regex t/tomita-4)
+                                  (execute-grammar t/tomita-4 gramd/tomita-4-terminal-set))
+        "tomita-5" (print-results (execute-regex t/tomita-5)
+                                  (execute-grammar t/tomita-5 gramd/tomita-5-terminal-set))
+        "tomita-6" (print-results (execute-regex t/tomita-6)
+                                  (execute-grammar t/tomita-6 gramd/tomita-6-terminal-set))
+        "tomita-7" (print-results (execute-regex t/tomita-7)
+                                  (execute-grammar t/tomita-7 gramd/tomita-7-terminal-set))
+        "all" (execute-all-and-print)
         (println "Must select a tomita grammar such as 'tomita-1'!")))
     (println "Must select tomita grammar!")))

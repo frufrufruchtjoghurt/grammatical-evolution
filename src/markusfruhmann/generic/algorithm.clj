@@ -254,4 +254,5 @@
                                       size-of-population)
         best-of-run (execute-generations gp-config population max-generations word-map)]
     (println "Best individual of this run:")
-    ((:pretty-print config) best-of-run)))
+    ((:pretty-print config) best-of-run)
+    best-of-run))

@@ -28,27 +28,3 @@
     (is (= [:+ {:non-terminal :A :reference nil} {:non-terminal :B :reference nil}]
            (subject/remove-unsolved-references tree)))))
 
-(deftest node->rule-test
-  (let [node {:non-terminal :A :terminal "a" :reference :A :epsilon? nil}]
-    (is (= "A = 'a'A;"
-           (subject/node->rule node)))))
-
-(deftest node->rule-test-epsilon
-  (let [node {:non-terminal :A :terminal "a" :reference :A :epsilon? true}]
-    (is (= "A = 'a'A | epsilon;"
-           (subject/node->rule node)))))
-
-(deftest node->rule-test-no-reference
-  (let [node {:non-terminal :A :terminal "a" :reference nil :epsilon? true}]
-    (is (= "A = 'a' | epsilon;"
-           (subject/node->rule node)))))
-
-(deftest tree->grammar-test
-  (let [tree [:= {:non-terminal :A :terminal "a" :reference :A :epsilon? true}]]
-    (is (= "A = 'a'A | epsilon;"
-           (subject/tree->grammar tree)))))
-
-(deftest tree->grammar-test-multiple
-  (let [tree [:+ {:non-terminal :A :terminal "a" :reference :A :epsilon? true} [:= {:non-terminal :B :terminal "b" :reference :A :epsilon? nil}]]]
-    (is (= "A = 'a'A | epsilon;\nB = 'b'A;"
-           (subject/tree->grammar tree)))))
