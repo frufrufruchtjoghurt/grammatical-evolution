@@ -14,11 +14,11 @@
 
 (def t1-non-terminals (helper/generate-non-terminals 3))
 (def t2-non-terminals (helper/generate-non-terminals 4))
-(def t3-non-terminals (helper/generate-non-terminals 20))
-(def t4-non-terminals (helper/generate-non-terminals 15))
-(def t5-non-terminals (helper/generate-non-terminals 15))
-(def t6-non-terminals (helper/generate-non-terminals 15))
-(def t7-non-terminals (helper/generate-non-terminals 15))
+(def t3-non-terminals (helper/generate-non-terminals 6))
+(def t4-non-terminals (helper/generate-non-terminals 5))
+(def t5-non-terminals (helper/generate-non-terminals 6))
+(def t6-non-terminals (helper/generate-non-terminals 5))
+(def t7-non-terminals (helper/generate-non-terminals 6))
 
 (def tomita-1-terminal-set (helper/create-terminal-set t1-non-terminals tom/tomita-1-base))
 (def tomita-2-terminal-set (helper/create-terminal-set t2-non-terminals tom/tomita-2-base))
