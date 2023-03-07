@@ -1,0 +1,40 @@
+#+title: Bachelor Thesis: Grammatical Evolution - Documentation
+#+description: Project structure and tasks for grammatical evolution for regular grammars.
+#+author: Markus Fruhmann
+#+bibliography: references.bib
+
+* Generic Genetic Programming implementation
+This file contains documentation for `generic.clj`, `helper.clj` and `data.clj` located in the `generic` folder.
+
+** generic.clj
+The main implementation of the Genetic Programming algorithm, as defined by John R. Koza's book 'Genetic programming - on the programming of computers by means of natural selection' in Appendix C.
+
+*** create-individual-program
+| Input           | Type    | Description                                                           |
+|-----------------+---------+-----------------------------------------------------------------------|
+| function-set    | set     | Set of functions for genetic programming. Functions must be given as keywords. |
+| arity-map       | map     | A mapping from function keywords to their arity.                      |
+| terminal-set    | set     | Set of terminals for genetic programming. Can be of any type.         |
+| remaining-depth | integer | The remaining depth of the tree that can be created. When calling this function, this value should be the maximum tree depth. |
+| top-node?       | boolean | This defines if the current node is the root node of the tree. At the root of the tree, only functions are selected. Should be set to true when calling this function. |
+| full?           | boolean | This specifies if the tree should be created as a full tree, meaning that a function will be selected until the remaining depth is 0. |
+|-----------------+---------+-----------------------------------------------------------------------|
+| Output          | Type    | Description                                                           |
+|-----------------+---------+-----------------------------------------------------------------------|
+| individual      | vector  | The newly created individual as a nested vector. Each vector in the tree starts with its function, followed by the arguments which can be either a terminal or another vector starting with a function. |
+
+This function uses mutual recursion with `create-arguments-for-function` to create an individual. This function contains three possible paths. If `remaining-depth` is 0, a terminal from the terminal set is selected as the next node. If `top-node?` or `full?` are true, a function is selected from the function set and the arguments for this function are created by calling `create-arguments-for-function`. If the previous paths were not chosen, a random value determines if a function or a terminal is selected, where selecting a function triggers a call to `create-arguments-for-function`.
+
+*** create-arguments-for-function
+| Input               | Type    | Description |
+|---------------------+---------+-------------|
+| number-of-arguments | integer |             |
+| function-set        | set     |             |
+| arity-map           | map     |             |
+| terminal-set        | set     |             |
+| remaining-depth     | integer |             |
+| full?               | boolean |             |
+|---------------------+---------+-------------|
+| Output              | Type    | Description |
+|---------------------+---------+-------------|
+| function-arguments  | vector  |             |

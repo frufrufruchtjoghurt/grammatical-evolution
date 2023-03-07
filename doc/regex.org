@@ -1,13 +1,12 @@
-#+title: Bachelor Thesis: Grammatical Evolution - Documentation
-#+description: Project structure and tasks for grammatical evolution for regular grammars.
+#+title: Bachelor Thesis: Grammatical Evolution - Regex
+#+description: Documentation for the regex implementation.
 #+author: Markus Fruhmann
 #+bibliography: references.bib
 
-* Grammatical Evolution
-** Regular grammars with RegEx
+* Regular grammars with RegEx
 The first part of the project will implement and evaluate creating regular expressions to match regular grammars. The first section will describe the regex operators, that will be used as functions for grammatical evolution. The second section will focus on concrete examples and possible representations for grammatical evolution.
 
-*** Definitions
+** Definitions
 Regex allows for many different meta symbols, like operators, scopes and groups, but a small subset will be sufficient for our purposes. Following meta symbols will be used:
 - =*=: capture the preceding token or group 0 to \infin times.
 - =+=: captures the preceding token or group 1 to \infin times.
@@ -17,21 +16,21 @@ Regex allows for many different meta symbols, like operators, scopes and groups,
 
 Grouping all meta symbols in use by arity is necessary for the creation of an effective evolutionary algorithm. Since meta symbols will represent the functions of our grammatical evolution, 'function' will be the term used from now on.
 
-**** 1-ary functions
+*** 1-ary functions
 Following functions are 1-ary (unary) and operate on one parameter:
 - =*=
 - =+=
 - =?=
 
-**** 2-ary functions
+*** 2-ary functions
 Following functions are 2-ary (binary) and operate on two parameters:
 - =|=
 - =&=
 
-*** Examples
+** Examples
 This section provides small example rulesets and their possible graph based representation using regular expressions.
 
-**** Recursive rules
+*** Recursive rules
 The following regular grammar ruleset produces only words containing the letter =a=. A word consists of at least one a.
 
 - V_{T} = {_a_}
@@ -51,7 +50,7 @@ Another possible solution could be:
 ("&" "a" ("*" "a")) ;; produces the regular expression 'a(a)*'
 #+end_src
 
-**** Circular rules
+*** Circular rules
 The next ruleset defines a regular grammar, that produces any number of =ab=. The empty word \epsilon is allowed as well.
 
 - V_{N} = {_a_, _b_}
@@ -69,7 +68,7 @@ Following graph could represent this ruleset:
   ("&" "a" "b"))
 #+end_src
 
-**** Exit conditions
+*** Exit conditions
 The previous ruleset should now be expanded, so that at least one pair =ab= should be produced.
 
 - V_{N} = {_a_, _b_}
@@ -87,7 +86,7 @@ This could yield the following graph:
   ("&" "a" "b"))
 #+end_src
 
-*** Difficulties
+** Difficulties
 Representing regular grammars with regular expressions was very straightforward so far, but regular expressions come with their own difficulties. For better display, following rules are given:
 
 - V_{N} = {_a_, _b_}
@@ -108,11 +107,11 @@ These rules are very similar to our previous examples, but now any alteration of
   ("?" "a"))
 #+end_src
 
-*** Generating an initial population
+** Generating an initial population
 We will generate an initial population with the grow and full method, as well as a more unified algorithm like ramped half-and-half.
 The sample implementation upon which this implementation is based on can be found in Genetic Programming 1 by John R. Koza on page 740.
 
-**** grow
+*** grow
 To generate an inidividal of a population with the grow method, a random item is chosen from all functions and terminals. If a terminal is being chosen, it is treated as a leaf and no further nodes are added. If a function was selected, more items are being added according to the functions arity.
 
 #+begin_src clojure
@@ -129,7 +128,7 @@ To generate an inidividal of a population with the grow method, a random item is
 
 The algorithm stops when no more items can be assigned i.e. all leafs are terminals or if the maximum depth has been reached.
 
-***** Example
+**** Example
 Consider following example, a regular grammar with these valid and invalid words.
 #+begin_src clojure
 (def valid-words
@@ -170,7 +169,7 @@ Another example tree could be:
   ("?" "a")))
 #+end_src
 
-**** full
+*** full
 When generating an individual with the full method, only items from the function set are selected until the maximum tree depth. Afterwards all remaining nodes are populated with items from the terminal set.
 
 #+begin_src clojure
@@ -178,7 +177,7 @@ When generating an individual with the full method, only items from the function
   ["*" "+" "?" "&" "|"])
 #+end_src
 
-***** Example
+**** Example
 Consider following example, a regular grammar with these valid and invalid words.
 #+begin_src clojure
 (def valid-words
@@ -222,66 +221,55 @@ This is another example tree.
    ("&" "a" "a"))))
 #+end_src
 
-**** ramped half-and-half
+*** ramped half-and-half
 When using ramped half-and-half, half of the trees of the initial population are created using the grow method and the other half is created using the full method. This ensures a larger variety of tree shapes, which should help with discovering better results.
 
-*** Evaluation of individuals trees
+** Evaluation of individuals trees
 Before determining the best trees of a population, the performance of each individual has to be evaluated. To evaluate our regular expressions, constructing a regex string from our trees is necessary. Every predefined function must be resolved correctly, in order to produce the desired regular expression and to ensure the validity of the result.
 
-**** =&= function
+*** =&= function
 The =&= function is the simplest to resolve, since the =&= itself is not present in regex syntax and it merely combines both of it's parameters into a single string.
 #+begin_example
 ("&" "a" "b") => "(ab)"
 #+end_example
 As already shown above, all functions will be wraped as groups, to ensure that the expected result is being produced.
-The resolution of =&= can be implemented like this.
-#+begin_src clojure
-(defn resolve-&
-  [[_func & args]]
-  (str/join ""
-            (-> (quote args)
-                (conj "(")
-                (concat '(")")))))
-#+end_src
 
-**** =|= function
+*** =|= function
 The =|= function is a little bit more difficult to process, since the =|= symbol itself has to be placed between it's two arguments.
 #+begin_example
 ("|" "a" "b") => "(a|b)"
 #+end_example
-Grouping is applied as well. Since grouping is needed so often and the application is always the same, following helper function can be defined.
-#+begin_src clojure
-(defn string->regex-group
-  "The input string is wrapped with '(' and ')'"
-  [s]
-  (str/join ""
-            (-> (list s)
-                (conj "(")
-                (concat '(")")))))
-#+end_src
+Grouping is applied as well to ensure consistency.
 
-Following function places =|= between the arguments and groups it to the desired regular expression.
-#+begin_src clojure
-(defn resolve-|
-  [[func arg1 arg2]]
-  (string->regex-group
-    (str/join "" [arg1 func arg2])))
-#+end_src
-
-**** Operator functions =*=, =+= and =?=
+*** Operator functions =*=, =+= and =?=
 All operator functions =*=, =+= and =?= can be implemented the same. Each of these functions has one argument and after all processing is applied, the operator should be after the argument.
 #+begin_example
-("*" "a") => "(a*)"
-("+" "b") => "(b+)"
-("?" ("&" "a" "b")) => "((ab)?)"
+("*" "a") => "a*"
+("+" "b") => "b+"
+("?" ("&" "a" "b")) => "(ab)?"
 #+end_example
+For operators, no grouping is applied, since it isn't needed for single arguments and deeper nested structures like =&= already apply grouping.
 
-All of these operators can be resolved with this function.
-#+begin_src clojure
-(defn resolve-ops
-  [[op arg]]
-  (string->regex-group
-   (str/join "" [arg op])))
-#+end_src
+** Optimizing regular expressions
+ Whilst testing the implementation of regular expression, one thing became very clear, very quickly: Grammatical Evolution will create some deeply complicated regular expressions which in turn will harm performance. The first performance problem is related to groups, since simple round braces =()= will create capture groups which will always store the matched value separately. Since we don't need any captured value and are only interested in the final match, we can safely ignore such capture groups. Therefore, we turn all automatically created groups into non-capturing groups =(?:)= which will not store their matched values.
+ The next step to optimize regular expressions is to reduce duplicates of the operators =*=, =+= and =?=. Consider the following regular expressions:
+ #+begin_example
+ ((a*)*)*
+ (a+)+
+ (((a?)?)?)?
+ #+end_example
+ Nesting the same operator in this way does not improve the regular expression. Instead, it reduces readability and introduces unnecessary complexity.
+ To solve this problem, all trees generated for regular expressions will be preprocessed by using the `rewrite` functionality of `meander`. `rewrite` rules can be defined in a style that very closely resembles logic programming languages like Prolog. A rule matches the left side of its definition and returns the right hand side as result. Variables start with `?` and are substituted accordingly.
+ Following rules are used to rewrite the regular expressions from above:
+ #+begin_src clojure
+(rewrite
+   [:* [:* ?t]] [:* ?t]
+   [:+ [:+ ?t]] [:+ ?t]
+   [:? [:? ?t]] [:? ?t])
+ #+end_src
+ These rules will unnest the corresponding tree structure and transform it into our desired result:
+ #+begin_example
+ [:* [:* "a"]] -> [:* "a"]
+ #+end_example
 
-** Regular grammars with rules
+ The next group of patterns that can easily be simplified, are those that result in a 0-to-n match =*=. These patterns are any combination of =+= and =?= and any combination of =+= and =?= with =*=.

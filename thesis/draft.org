@@ -1,0 +1,464 @@
+#+title: Bachelor Thesis: Grammatical Evolution - Draft
+#+description: Draft for bachelor thesis.
+#+author: Markus Fruhmann
+#+bibliography: references.bib
+
+* Discovering Regular Grammars and Regular Expressions with Grammatical Evolution
+** Abstract
+Short summary with conclusion in one sentence in the end
+** Introduction
+Abstract, but longer
+** Related Work
+AAlpy
+Some Italian working with regular grammars
+** Preliminaries
+John R. Koza, how does GP work
+Definition of used regular grammars
+Definition of used regular expressions
+
+*** Definition of Languages
+Before talking about creating regular expressions or regular grammars for different languages, we first have to define what a language is.
+
+Each language consists of an alphabet, which is a nonempty, finite set of characters. This alphabet will be noted as \Sigma. Using this alphabet, we are able to construct words. A word is simply a string, a finite sequence of characters from the alphabet. [cite:see @books/PLinz/fla-2017 p. 17]
+In our case, all characters of an alphabet are lowercase letters _a_, _b_, _c_,... for elements of \Sigma, since these letters signify the non-terminals in our regular grammars.
+Each word \omega of our language has a length, denoted by |\omega|. The length can be obtained by counting all characters that make up a specific word. A very important special word is the empty string \lambda, which does not contain any characters and therefore has a length of 0. [cite:see @books/PLinz/fla-2017 p. 17]
+As we now have defined the alphabet \Sigma, a word of the alphabet \omega and the empty string \lambda, we can now look at two special alphabets, \Sigma^{\+} and \Sigma^{\*}. \Sigma^{\*} contains all words that can be created using the characters in \Sigma, including the empty string \lambda. To exclude \lambda, we can define \Sigma^{\+} as follows:
+\begin{equation}
+\Sigma^{\+}=\Sigma^{\*} - {\lambda}.
+\end{equation}
+In contrast to the finite nature of \Sigma, \Sigma^{\*} and \Sigma^{\+} are both infinite, since the length of the strings in these sets is not limited in any way. Therefore, a language =L= can be defined as a subset of \Sigma^{\*}, where the corresponding alphabet \Sigma contains all different characters used in =L=. This means, that two languages =L1= and =L2= might share the same alphabet \Sigma, but each could contain a subset of \Sigma^{*} such that
+\begin{equation}
+L_{1} \cap L_{2} = \varnothing.
+\end{equation}
+Since languages are just sets by definition, as they are subsets of the set \Sigma^{\*}, the operations union, intersection and difference are immediately applicable. Concatenating two languages =L1= and =L2= will result in every element of =L1= being concatenated with every element of =L2=. Another important definition is $L^n$, which is the language $L$ concatenated with itself $n$ times. Following special cases
+\begin{equation}
+L^0 = {\lambda}\\
+L^1 = L
+\end{equation}
+the star-closure
+\begin{equation}
+L^* = L^0 \cup L^1 \cup L^2 ...
+\end{equation}
+and the positive closure
+\begin{equation}
+L^+ = L^1 \cup L^2 ...
+\end{equation}
+are applicable to every language =L=.[cite:see @books/PLinz/fla-2017 p. 19-20]
+With this solid definition of languages, we are able to define regular expressions and regular grammars in the following sections.
+
+*** Regular Expressions
+When describing a language with regular expressions in a formal way, a special notation is used. This notation consists of words created from characters of an alphabet \Sigma, parentheses =()= and the operators =+=, =\cdot= and =*=. The operators =+=, =\cdot= and =*= signify different set operations on a language =L=. =+= is denotes the union, =\cdot= denotes concatenation and =*= denotes the star-closure.[cite:see @books/PLinz/fla-2017 p. 74]
+We can define regular expressions in a formal matter the following way:
+#+begin_quote
+Let \Sigma be a given alphabet. Then
+1. \varnothing, \lambda, and $a \in \Sigma$ are all regular expressions. These are called *primitive regular expressions*.
+2. If $r_1$ and $r_2$ are regular expressions, so are $r_1 + r_2$, $r_1 \cdot r_2$, $r_1^{\*}$ and $(r_1)$.
+3. A string is a regular expression if and only if it can be derived from the primitive regular expressions by a finite number of applications of the rules in (2).[cite:see @books/PLinz/fla-2017 p. 74]
+#+end_quote
+The some small problems arise, when many of the operators defined above are used in conjunction. To further elaborate this, let's consider the regular expression $a \cdot b + c$. We now have two valid options to represent this regular expression: $r_1 = a \cdot b$ and $r_2 = c$ which results in the language $L(a \cdot b + c)= {ab,c}$ or $r_1=a$ and $r_2=b+c$ which results in $L(a \cdot b + c)={ab,ac}$. To prevent such ambiguity, we could either parenthesize all expressions, but this would be hard to read. Therefore, a precedence is given to each operator, which ensures that each one is evaluated in the correct order. This means, that =*= star-closure precedes =\cdot= concatenation, which precedes =+= union. Furthermore, the operator for concatenation can be omitted and we can rewrite $r_1 \cdot r_2$ to $r_1 r_2$.[cite:see @books/PLinz/fla-2017 p. 76]
+With this formal definition of regular grammars and their operators, we can now define the different operators used in modern pattern matchers for regular expressions, as they differ from their formal counterparts. In modern regular expression syntax, the operator for concatenation =\cdot= is always omitted. The union operator =+= can be replaced with the logical OR =|=, since it also creates a set consisting of the elements on each side of =|= where one of them can be selected to match. The =+= operator now signifies the positive closure, while the =*= operator does not change and still signifies the star-closure.
+
+*** Regular Grammars
+Regular grammars are another way to represent languages and language families, that can be represented with an automaton. Two types of regular grammars are possible.[cite:see @books/PLinz/fla-2017 p. 92]
+#+begin_quote
+A grammar $G=(V,T,S,P)$ is said to be *right-linear* if all productions are of the form
+\begin{equation}
+A \rightarrow xB,\\
+A \rightarrow x,
+\end{equation}
+where $A,B \in V$, and $x \in T_{\*}$. A grammar is said to be *left-linear* if all productions are of the form
+\begin{equation}
+A \rightarrow Bx,
+\end{equation}
+or
+\begin{equation}
+A \rightarrow x.
+\end{equation}
+A *regular grammar* is one that is either right-linear or left-linear.[cite:see @books/PLinz/fla-2017 p. 92]
+#+end_quote
+A defining characteristic of regular grammars is, that at most one variable can appear on the right side of any production rule and the variable must consistently be placed on the far right or the far left on the right side of the production rule.[cite:see @books/PLinz/fla-2017 p. 92]
+In the following chapters, the grammars used will strongly adhere to the EBNF notation as it is defined in ISO/IEC 14977 from 1996. This means, that instead of =\rightarrow=, === will be used to define a production rule and all possible options for said rule are separated with =|=. For our purposes, the empty string will be represented by \epsilon instead of \lambda, but \lambda will be used in formal definitions. Consider following example:
+\begin{equation}
+A \rightarrow xA,\\
+A \rightarrow xB,\\
+B \rightarrow yB,\\
+B \rightarrow \lambda,
+\end{equation}
+can be rewritten to
+\begin{equation}
+A = xA|xB;\\
+B = yb|\epsilon;
+\end{equation}
+which now adheres to the afformentioned EBNF notation. Note, that each rule is seperated by a semicolon as well, which further ties into the definition of EBNF.
+
+*** Genetic Programming
+After defining the basis for the representation of languages with regular expressions and regular grammars, we can now move on to the last part needed for this project, *genetic programming*, which itself is based on *genetic algorithms*.
+#+begin_quote
+The /genetic algorithm/ is a highly parallel mathematical algorithm that transforms a set (/population/) of individual mathematical objects [...], each with an associated /fitness/ value, into a new population (i.e., the next /generation/) using operations patterned after the Darwinian principle of reproduction and survival of the fittest and after naturally occurring genetic operations [...].[cite:see @books/JRKoza/gp1-1993 p. 18]
+#+end_quote
+
+**** Function and terminal set
+In genetic programming, like in every other adaptive system, at least one structure is altered and adapted during learning. What makes genetic programming special, is, that instead of a single point, all individual elements of the search space are being adapted, instead of a single element. This means, that genetic methods can search hundreds or thousands of points in the search space in parallel. The individual structures that are processed by genetic programming are hierarchical computer programs. The set of possible individual structures is given by all possible compositions of elements from a function set =F= and a terminal set =T=. Each function of =F= takes a specified number of arguments, which signifies a functions /arity/. These functions can be arithmetic operations, boolean operators or any other function that is domain-specific. Terminals can either be variable atoms, like the state of a system, or constant values, like the number =3= or the boolean value =true=.[cite:@books/JRKoza/gp1-1993 p. 79-80]
+A very important property of each function of =F= is /closure/. Closure means, that the output of any function in $f_1 \in F$, may possibly be used as input for any other function $f_2 \in F$. This also means, that every function that could produce an error, like $\div$ when dividing by 0, has to handle such cases in a gracious way that produces a resonable alternative result. In this case, a resonable output could be 1, when dividing by 0.[cite:@books/JRKoza/gp1-1993 p. 81-82]
+The other very important property for functions =F= and terminals =T= for a given problem is /sufficiency/. Sufficiency means, that the set of all possible individual structures using =F= and =T= can yield a solution for the given problem. It is therefore necessary to identify the functions and terminals that have this sufficient power of expression, even if this task might sometimes be impossible and the number of variables has to be restricted to a set that comes close enough to a perfect solution.[cite:@books/JRKoza/gp1-1993 p. 86-87]
+
+**** Initial Structure
+The initial structure in genetic programming contains randomly generated individuals which form the initial population. Each individual is a rooted, point-labeled tree with ordered branches. The root element of an individual is always a function and for each argument the function needs a new branch of the tree is created. For each of this branches, we now select a random value from the union of function set and terminal set $v \in F \cup T$. If =v= is a terminal, it is added to this branch as a leaf node and if =v= is a function, the amount of branches corresponding to the arity of =v= is created from =v=. This process repeats recursively until every branch is satisfied and ends in a terminal as leaf node. Two basic methods to create the initial population of a tree exist. When generating an individual with the "full" method, only items from the function set are selected until the specified maximum tree depth. Afterwards all remaining nodes are populated with items from the terminal set, resulting in trees that always reach the maximum depth and are "bushy", due to the exclusive use of functions until the maximum depth. To generate a tree with the "grow" method, a random item is chosen from the union of functions and terminals. If a terminal is being chosen, it is treated as a leaf and no further nodes are added. If a function was selected, more nodes are being added according to the functions arity. Therefore the "grow" method corresponds to the initial explanation on creating an individual. In contrast to the "full" method, trees can be significantly shorter than those created by the "full" method. To create an initial population with varied shapes, "ramped-half-and-half" combines the full and grow method. Using ramped-half-and-half, trees are generated in the range of depth 2 and the maximum tree depth and creation switches between the full and grow methods. This results in half the populatio created with the full, and half the population created with the grow method.[cite:@books/JRKoza/gp1-1993 p. 91-93]
+
+**** Fitness
+The fitness of an individual in nature is the probability of survival until the age of reproduction, so that offspring can be created. In the artificial world of algorithms, fitness defines how different operations are applied to our structures. The common approach for doing this requires us to assign a fitness value to each individual of our population. To calculate our fitness value, we usually evaluate a set of fitness cases with a given individual and determine how well this individual did perform the specific task.[cite:@books/JRKoza/gp1-1993 p. 94-95]
+
+***** f1-score
+The f1-score consists of two basic measures, /precision/ and /recall/. Precision is defined as the fraction of relevant items in relation to the total of retrieved items.[cite:@journals/IKlampanos/ir-2009 p. 154-155]
+In our case, we can take a look at our fitness cases and determine how many of them returned a "truthy" value. Furthermore, we need two sets of fitness cases, "true" cases and "wrong" cases, where "true" cases should return true when evaluated with an individual and "false" cases should return false.
+| Evaluation result $rightarrow$ |                   |                   |
+| Expected result $downarrow$    | positive          | negative          |
+|--------------------------------+-------------------+-------------------|
+| positive                       | true-positive TP  | false-negative FN |
+| negative                       | false-positive FP | true-negative TN  |
+\begin{equation}
+\text{Precision}=\frac{text{#(relevant items retrieved)}}{text{#(retrieved items)}}=P(text{relevant}|text{retrieved})
+\end{equation}
+To account for the result of our fitness cases, precision can also be defined as
+\begin{equation}
+\text{Precision}=\frac{text{#TP}}{text{#TP}+text{#FP}}.
+\end{equation}
+Recall on the other hand is the amount of relevant documents amongst those that have been retrieved.
+\begin{equation}
+\text{Recall}=\frac{text{#(relevant items retrieved)}}{text{#(relevant items)}}=P(text{retrieved}|text{relevant})
+\end{equation}
+This results in following formula for recall
+\begin{equation}
+\text{Precision}=\frac{text{#TP}}{text{#TP}+text{#FN}}.
+\end{equation}
+[cite:@journals/IKlampanos/ir-2009 p. 155]
+We can now combine precision and recall to trade them off against each other, so that we get a high amount true positives while tolerating only a small amount of false positives. A good measure which achieves this is the /F measure/, which results in the /f1-score/, if precision and recall are evenly weighted.
+\begin{equation}
+F_{\beta = 1} = \frac{2 \times P \times R}{P + R}
+\end{equation}
+This results in values between 0 and 1, where 1 signifies a perfect score.[cite:@journals/IKlampanos/ir-2009 p. 156]
+
+**** Reproduction
+Reproduction lies at the basis of Darwinian natural selection and it is asexual, as it only operates on one individual. In reproduction, a single individual is selected from a population and is copied as-is to the next generation. There exist a few ways to select an individual, but in our case, /tournament selection/ is being used. In order to apply tournament selection, a specified amount of individuals is selected from the population. Typically two individuals are being selected and the one with the better fitness value will be chosen.[cite:@books/JRKoza/gp1-1993 p. 99-100]
+
+**** Crossover
+The crossover operation works on two individuals at a time by combining parts taken from each parent, therefore it is a sexual operation. Crossover always uses two individuals and produces two individuals as offspring. In this project, tournament selection is being used to select both parent individuals from a generation, however, like reproduction, other methods to select an individual can be applied as well. In each of the parent individuals, a crossover point is determined at random and the subtree of parent =B= replaces the subtree at the crossover point of parent =A=. The same happens for parent =B=, where the selected subtree is replaced by the subtree in parent =A=. It is important to note, that this operation is non-destructive and preserves =A= and =B= without altering them. The newly created offspring has to pass a size check, which is done via maximum tree depth. If one or both of the offspring are too deep, an equal amount of parent programs will reproduce into the next generation. This mechanism exists to prevent a high increase in computation time due to a few large individuals.[cite:@books/JRKoza/gp1-1993 p. 101-104]
+
+**** Mutation
+Mutation introduces random changes in an individual. For this to happen, a single individual is selected from the population with tournament selection. To execute the mutation a random point within the individual is chosen and the whole subtree is replaced with a new randomly created one. This new subtree is created with the same method, as the initial population and the maximum depth of this subtree is typically the same as the one used to create individuals of the initial population as well. However, it is important to note, that mutation should play a minor role in genetic programming as it is relatvely unimportant.[cite:@books/JRKoza/gp1-1993 p. 105-106]
+This project also includes a special form of mutation, /subtree deletion/, where a whole subtree, which has been selected at random, is replaced with a terminal. This can be used if each generation introduces larger and larger individuals and it aims to reduce this bloat.
+
+**** Termination criterion
+Even though genetic programming could evolve endlessely like nature, we are more interested in retrieving the best result if a fixed termination criterion is met or a predetermined number of generations has been exhausted. The termination criterion is mostly a problem-specific success predicate, which often requires a solution that solves the given problem with 100%-correctness. If we are unable to determine a correct solution, we can either select a lower criterion, or, if that proves impossible as well, we can omit it completely and merely analyze the results after the algorithm was run for =G= generations.[cite:@books/JRKoza/gp1-1993 p. 113]
+
+**** Result designation
+In result designation we simply present the best individual of the run. For our purposes, this is either the individual that satisfied the termination criterion or the best-of-run after running =G= generations. This best-of-run individual is only based on caching the best-so-far individual after each generation.[cite:@books/JRKoza/gp1-1993 p. 113]
+
+** Methodology
+How is this implemented
+Start with the general algorithm (short, as it mainly is a port from Koza)
+Then explain how regular expressions are implemented
+Finally, explain how regular grammars are implemented
+
+
+
+
+
+*** Regular grammars with RegEx
+The first part of the project will implement and evaluate creating regular expressions to match regular grammars. The first section will describe the regex operators, that will be used as functions for grammatical evolution. The second section will focus on concrete examples and possible representations for grammatical evolution.
+
+**** Definitions
+Regex allows for many different meta symbols, like operators, scopes and groups, but a small subset will be sufficient for our purposes. Following meta symbols will be used:
+- =*=: capture the preceding token or group 0 to \infin times.
+- =+=: captures the preceding token or group 1 to \infin times.
+- =?=: captures the preceding token 0 or 1 times.
+- =|=: logical OR, combines preceding and following token.
+- =&=: logical AND, combines preceding and following token.
+
+Grouping all meta symbols in use by arity is necessary for the creation of an effective evolutionary algorithm. Since meta symbols will represent the functions of our grammatical evolution, 'function' will be the term used from now on.
+
+***** 1-ary functions
+Following functions are 1-ary (unary) and operate on one parameter:
+- =*=
+- =+=
+- =?=
+
+***** 2-ary functions
+Following functions are 2-ary (binary) and operate on two parameters:
+- =|=
+- =&=
+
+**** Examples
+This section provides small example rulesets and their possible graph based representation using regular expressions.
+
+***** Recursive rules
+The following regular grammar ruleset produces only words containing the letter =a=. A word consists of at least one a.
+
+- V_{T} = {_a_}
+- V_{N} = {S, A}
+
+- S \rightarrow A
+- A \rightarrow _a_ A
+- A \rightarrow _a_
+
+The graph representation of a regular grammar for this ruleset could look like this:
+#+begin_src clojure
+("+" "a") ;; produces the regular expression '(a)+'
+#+end_src
+
+Another possible solution could be:
+#+begin_src clojure
+("&" "a" ("*" "a")) ;; produces the regular expression 'a(a)*'
+#+end_src
+
+***** Circular rules
+The next ruleset defines a regular grammar, that produces any number of =ab=. The empty word \epsilon is allowed as well.
+
+- V_{N} = {_a_, _b_}
+- V_{T} = {S, A, B}
+
+- S = A
+- A = aB
+- A = \epsilon
+- B = bA
+
+Following graph could represent this ruleset:
+#+begin_src clojure
+;; produces the regular expression '(ab)*'
+("*"
+  ("&" "a" "b"))
+#+end_src
+
+***** Exit conditions
+The previous ruleset should now be expanded, so that at least one pair =ab= should be produced.
+
+- V_{N} = {_a_, _b_}
+- V_{T} = {S, A, B, C}
+
+- S \rightarrow A
+- A \rightarrow aB
+- A \rightarrow aC
+- B \rightarrow bA
+- C \rightarrow b
+
+This could yield the following graph:
+#+begin_src clojure
+("+"
+  ("&" "a" "b"))
+#+end_src
+
+**** Difficulties
+Representing regular grammars with regular expressions was very straightforward so far, but regular expressions come with their own difficulties. For better display, following rules are given:
+
+- V_{N} = {_a_, _b_}
+- V_{T} = {S, A, B}
+
+- S \rightarrow A
+- A \rightarrow aB
+- A \rightarrow \epsilon
+- B \rightarrow bA
+- B \rightarrow \epsilon
+
+These rules are very similar to our previous examples, but now any alteration of =a= and =b= is allowed. For example =a= and =aba= are valid as well. This combination can be represented using regex, but the expression is already harder to read:
+#+begin_src clojure
+;; produces '((ab)*)a?'
+("&"
+  ("*"
+    ("&" "a" "b"))
+  ("?" "a"))
+#+end_src
+
+*** Generating an initial population
+We will generate an initial population with the grow and full method, as well as a more unified algorithm like ramped half-and-half.
+The sample implementation upon which this implementation is based on can be found in Genetic Programming 1 by John R. Koza on page 740.
+
+**** grow
+To generate an inidividal of a population with the grow method, a random item is chosen from all functions and terminals. If a terminal is being chosen, it is treated as a leaf and no further nodes are added. If a function was selected, more items are being added according to the functions arity.
+
+#+begin_src clojure
+(def functions
+  ["*" "+" "?" "&" "|"])
+
+(def arities
+  {"*" 1
+   "+" 1
+   "?" 1
+   "&" 2
+   "|" 2})
+#+end_src
+
+The algorithm stops when no more items can be assigned i.e. all leafs are terminals or if the maximum depth has been reached.
+
+***** Example
+Consider following example, a regular grammar with these valid and invalid words.
+#+begin_src clojure
+(def valid-words
+  ["ababababab" "abab" "" "ab"])
+
+(def invalid-words
+  ["a" "aaaa" "bbb" "bababa" "abababbb" "ababaaa"])
+#+end_src
+
+By analyzing these words, we are able to determine the used terminals.
+#+begin_src clojure
+(def terminals
+  ["a" "b"])
+#+end_src
+
+When these terminals are combined into a list with the predefined functions, the full list of possible nodes can be determined.
+#+begin_src clojure
+(def nodes
+  ["*" "+" "?" "&" "|" "a" "b"])
+#+end_src
+
+Following sample trees could be created by randomly selecting elements from the node list. To keep it simple, the maximum depth is given with 4.
+#+begin_src clojure
+;; produces '(((a)*|(b)?)+)*'
+("*"
+ ("+"
+  ("|"
+   ("*" "a")
+   ("?" "b"))))
+#+end_src
+This example shows, that all contents of all functions have to be grouped automatically.
+
+Another example tree could be:
+#+begin_src clojure
+;; produces 'a(b|(a)?)'
+("&" "a"
+ ("|" "b"
+  ("?" "a")))
+#+end_src
+
+**** full
+When generating an individual with the full method, only items from the function set are selected until the maximum tree depth. Afterwards all remaining nodes are populated with items from the terminal set.
+
+#+begin_src clojure
+(def functions
+  ["*" "+" "?" "&" "|"])
+#+end_src
+
+***** Example
+Consider following example, a regular grammar with these valid and invalid words.
+#+begin_src clojure
+(def valid-words
+  ["ababababab" "abab" "" "ab"])
+
+(def invalid-words
+  ["a" "aaaa" "bbb" "bababa" "abababbb" "ababaaa"])
+#+end_src
+
+By analyzing these words, we are able to determine the used terminals.
+#+begin_src clojure
+(def terminals
+  ["a" "b"])
+#+end_src
+
+The following tree with a maximum depth of 4 might be generated by the full method.
+#+begin_src clojure
+;; produces '(((b)+)?)*|(((b)?)*)?'
+("|"
+ ("*"
+  ("?"
+   ("+" "b")))
+ ("?"
+  ("*"
+   ("?" "b"))))
+#+end_src
+
+This is another example tree.
+#+begin_src clojure
+;; produces '(((b)+ba)|((a)*(a|b))((aa)?)*)'
+("&"
+ ("|"
+  ("&"
+   ("+" "b")
+   ("&" "b" "a"))
+  ("&"
+   ("*" "a")
+   ("|" "a" "b")))
+ ("*"
+  ("?"
+   ("&" "a" "a"))))
+#+end_src
+
+**** ramped half-and-half
+When using ramped half-and-half, half of the trees of the initial population are created using the grow method and the other half is created using the full method. This ensures a larger variety of tree shapes, which should help with discovering better results.
+
+*** Evaluation of individuals trees
+Before determining the best trees of a population, the performance of each individual has to be evaluated. To evaluate our regular expressions, constructing a regex string from our trees is necessary. Every predefined function must be resolved correctly, in order to produce the desired regular expression and to ensure the validity of the result.
+
+**** =&= function
+The =&= function is the simplest to resolve, since the =&= itself is not present in regex syntax and it merely combines both of it's parameters into a single string.
+#+begin_example
+("&" "a" "b") => "(ab)"
+#+end_example
+As already shown above, all functions will be wraped as groups, to ensure that the expected result is being produced.
+
+**** =|= function
+The =|= function is a little bit more difficult to process, since the =|= symbol itself has to be placed between it's two arguments.
+#+begin_example
+("|" "a" "b") => "(a|b)"
+#+end_example
+Grouping is applied as well to ensure consistency.
+
+**** Operator functions =*=, =+= and =?=
+All operator functions =*=, =+= and =?= can be implemented the same. Each of these functions has one argument and after all processing is applied, the operator should be after the argument.
+#+begin_example
+("*" "a") => "a*"
+("+" "b") => "b+"
+("?" ("&" "a" "b")) => "(ab)?"
+#+end_example
+For operators, no grouping is applied, since it isn't needed for single arguments and deeper nested structures like =&= already apply grouping.
+
+*** Optimizing regular expressions
+ Whilst testing the implementation of regular expression, one thing became very clear, very quickly: Grammatical Evolution will create some deeply complicated regular expressions which in turn will harm performance. The first performance problem is related to groups, since simple round braces =()= will create capture groups which will always store the matched value separately. Since we don't need any captured value and are only interested in the final match, we can safely ignore such capture groups. Therefore, we turn all automatically created groups into non-capturing groups =(?:)= which will not store their matched values.
+ The next step to optimize regular expressions is to reduce duplicates of the operators =*=, =+= and =?=. Consider the following regular expressions:
+ #+begin_example
+ ((a*)*)*
+ (a+)+
+ (((a?)?)?)?
+ #+end_example
+ Nesting the same operator in this way does not improve the regular expression. Instead, it reduces readability and introduces unnecessary complexity.
+ To solve this problem, all trees generated for regular expressions will be preprocessed by using the `rewrite` functionality of `meander`. `rewrite` rules can be defined in a style that very closely resembles logic programming languages like Prolog. A rule matches the left side of its definition and returns the right hand side as result. Variables start with `?` and are substituted accordingly.
+ Following rules are used to rewrite the regular expressions from above:
+ #+begin_src clojure
+(rewrite
+   [:* [:* ?t]] [:* ?t]
+   [:+ [:+ ?t]] [:+ ?t]
+   [:? [:? ?t]] [:? ?t])
+ #+end_src
+ These rules will unnest the corresponding tree structure and transform it into our desired result:
+ #+begin_example
+ [:* [:* "a"]] -> [:* "a"]
+ #+end_example
+
+ The next group of patterns that can easily be simplified, are those that result in a 0-to-n match =*=. These patterns are any combination of =+= and =?= and any combination of =+= and =?= with =*=.
+** Experiments
+Run and result of program
+First, show the optimal solutions, based on the converted dfa's from AAlpy and the ICANN paper
+Then show the results of executing the program with short explanations
+
+
+
+
+**** Control parameters
+In order to create comparable results across all evalulated problems, the same set of control parameters is used to evaluate each of them. As there exist some parameters that have already been tried and tested, the control parameters suggested by John R. Koza will be used except for those where additional information has been provided.
+- The population size is 500 individuals.
+- The maximum number of generations is 50, where the initial generation is used as generation 0, so that there are 51 generations in total.
+- The probability of mutation is 0.01. This is different from John R. Koza's recommendations, because we want to allow the usage of subtree deletion.
+- The probability of reproduction is 0.09, which allows for 1% of the new generation to be created by mutation.
+- The probability of crossover is 0.9.
+- When executing crossover, 90% of the time a function will be selected as crossover point an 10% of the time any point can be selected for crossover.
+- The maximum depth for crossover offspring is 17.
+- The maximum depth for the individual generation as well as mutation is 6.
+- The method to generate the initial population is ramped half-and-half.
+- The method of mutation is subtree deletion.
+- The method of selection in all cases is tournament selection.
+- The fitness measure is created using the f1-score.
+  [cite:@books/JRKoza/gp1-1993 p. 114]
+
+** Conclusion
+What is the conclusion i.e. is it feasible to generate regular grammars this way?
+** Acknowledgments
+Thanks to Ben Sless from the Clojurians Slack!

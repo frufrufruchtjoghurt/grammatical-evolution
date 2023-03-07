@@ -1,0 +1,6 @@
+#+title: Bachelor Thesis: Grammatical Evolution - Regular Grammars
+#+description: Documentation for the regular grammar implementation.
+#+author: Markus Fruhmann
+#+bibliography: references.bib
+
+* Grammatical Evolution - Regular Grammars
