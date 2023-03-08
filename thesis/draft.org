@@ -134,7 +134,7 @@ This results in following formula for recall
 [cite:@journals/IKlampanos/ir-2009 p. 155]
 We can now combine precision and recall to trade them off against each other, so that we get a high amount true positives while tolerating only a small amount of false positives. A good measure which achieves this is the /F measure/, which results in the /f1-score/, if precision and recall are evenly weighted.
 \begin{equation}
-F_{\beta = 1} = \frac{2 \times P \times R}{P + R}
+F_{\beta = 1} = 2 \times \frac{P \times R}{P + R}
 \end{equation}
 This results in values between 0 and 1, where 1 signifies a perfect score.[cite:@journals/IKlampanos/ir-2009 p. 156]
 
@@ -155,40 +155,239 @@ Even though genetic programming could evolve endlessely like nature, we are more
 In result designation we simply present the best individual of the run. For our purposes, this is either the individual that satisfied the termination criterion or the best-of-run after running =G= generations. This best-of-run individual is only based on caching the best-so-far individual after each generation.[cite:@books/JRKoza/gp1-1993 p. 113]
 
 ** Methodology
-How is this implemented
-Start with the general algorithm (short, as it mainly is a port from Koza)
-Then explain how regular expressions are implemented
-Finally, explain how regular grammars are implemented
+This chapter will focus on the implementation details of a genetic programming system for regular grammars as well as regular expressions. The first part will focus on the general implementation of the algorithm and the provided utility functions, while the second and third part will resolve around the implementation of regular expressions and regular grammars respectively.
 
+*** Generic kernel
+The generic kernel of the genetic programming system is responsible for all parts that are problem independent. The tasks of the kernel are generating an initial population, selecting individual elements and applying the operations reproduction, crossover and mutation, as well as keeping track of the best-of-run individual and presenting the final result. For all this steps it uses a supplied terminal and function set as well as problem specific functions for fitness measurement and the termination criterion, which have to be supplied when starting a run. This generic kernel is mainly a port of John R. Koza's LISP implementation which can be found in [cite:Appendix C @books/JRKoza/gp1-1993 p. 735-755]. Only minor tweaks were added to this algorithm in order to better solve the problems at hand, but this tweaks are applicable to other problems as well, as they are fairly generic. The first addition is the possibility to use an optional optimizer function, which can be used to simplify a given individual before adding it to a population. If no optimizer is needed, the ~identity~ function should be supplied, as it simply returns the given individual. Another addition is the requirement to implement a pretty print function for each problem, which should give each specific implementation the power to present the results for each generation in a meaningful and readable way. The last addition is the special mutation operation of subtree deletion, which replaces a randomly selected mutation point in the individual with a terminal value.
+There are also some functions that have been omitted from the original code, like the ~normalize-fitness-of-population~ function, as this is not needed when determining the fitness with the f1-score. Fitness proportionate selection and fitness proportionate selection with over selection have not been implemented as well, since only tournament selection will be used. Some parts of the algorithm have been adapted to better suit the Clojure way of coding and usage experience. This is the reason why instead of supplying a function which sets all necessary parameters to run the genetic programming system, a config struct and the requirement to provide parameters directly as input was chosen, as it provided an easier environment to experiment with different parameters in Clojures interactive environment, the REPL (Read-Evaluate-Print-Loop). In general, the implementation should not differ to much from the original in terms of functionality, while offering the possibility to easily extend it to include the omitted parts.
 
+**** Utility functions
+A small set of utility functions has been implemented, which make working with the data structures used within the genetic programming system easier. This should provide a small overview over these functions and their usage.
 
+***** Retrieving terminals from word maps
+The primary datastructure provided to the genetic programming system is a map of valid and invalid words.
+#+begin_src clojure
+{:valid-words ["aa" "a" "aab" "" ...]
+ :invalid-words ["b" "bb" "bba" "ba" ...]}
+#+end_src
+However, this list of words cannot be processed by the genetic programming system, because it only works on functions and terminals. Therefore, the function ~get-terminals-from-map~ extracts the unique set of terminals by first extracting all words of the map into a single vector with ~get-words-from-map~ and then retrieving the terminals with ~get-terminals~. Get terminals concatenates all elements of the provided collection and then converts the string to a set, which only preserves unique characters. These unique characters are then returned as a vector of strings.
 
+***** in?
+Since Clojure has no function in its core library, that checks if an element is part of a collection, this function provides a shorthand for the common implementation of this functionality.
 
-*** Regular grammars with RegEx
-The first part of the project will implement and evaluate creating regular expressions to match regular grammars. The first section will describe the regex operators, that will be used as functions for grammatical evolution. The second section will focus on concrete examples and possible representations for grammatical evolution.
+***** map-tree
+~map-tree~ is an extension of the ~map~ function, which operates on a tree instead of a collection. It traverses each node while applying a function f and returns the result of this operation.
+
+***** f1-score
+~f1-score~ is the implementation of the f1-score measure, as previously defined. It recieves a map of evaluated valid and invalid words together with a function that is able to transform this map into the amount of true and false values. This count is then used to calculate the f1-score according to the predefined formulat.
+
+***** median
+The ~median~ function recieves a collection of integers or floating point numbers and calculates the median by sorting the collection and either selecting the value in the middle or by calculating the average of the two values in the middle.
+
+***** generate-word-map
+This function takes two regular expressions, one which matches words that are valid and one which only matches invalid words. It then applies these regular expressions to a generator and generates the specified amount of strings. It is also possible to supply a map with previously created words, where it will attempt to create additional words until the specified amount is satisfied.
+
+***** boolean-reducer
+The ~boolean-reducer~ is one of the functions that can be supplied to ~f1-score~ in order to retrieve the true and false values from a map. ~k1~ and ~k2~ are used, so that the caller of this function is able to specify the keys of the created map. A value is counted as true, if it is truthy by Clojures's standards.
+
+*** Regular expressions
+The following section describing the implementation of regular expressions for genetic programming is divided in two parts. The first part will briefly introduce the used operations of regular expressions, while the following parts will focus on the implementation details of required functions to efficiently run the genetic programming system.
 
 **** Definitions
-Regex allows for many different meta symbols, like operators, scopes and groups, but a small subset will be sufficient for our purposes. Following meta symbols will be used:
+As for any problem presented to a genetic programming system, terminal and function set provide the basis for successful evolution. The terminal set for regular expressions is rather simple, as it should consist of a unique set of characters which the different meta symbols of regular expressions are applied to. Regex allows for many different meta symbols, like operators, scopes and groups, but a small subset will be sufficient for our purposes and serve as a function set.
 - =*=: capture the preceding token or group 0 to \infin times.
 - =+=: captures the preceding token or group 1 to \infin times.
 - =?=: captures the preceding token 0 or 1 times.
 - =|=: logical OR, combines preceding and following token.
 - =&=: logical AND, combines preceding and following token.
 
-Grouping all meta symbols in use by arity is necessary for the creation of an effective evolutionary algorithm. Since meta symbols will represent the functions of our grammatical evolution, 'function' will be the term used from now on.
+  As all of these operators are supplied to the genetic programming system as functions, an arity has to be assigned to each of them. This can quite easily be achieved, as each of these operators either exclusively influences the preceding token, or the following token as well. =*=, =+= and =?= are 1-ary (unary) and =|= and =&= can be defined as 2-ary (binary) functions.
 
-***** 1-ary functions
-Following functions are 1-ary (unary) and operate on one parameter:
-- =*=
-- =+=
-- =?=
+**** Fitness
+Before determining the best individual of a population, the performance of each individual has to be evaluated. To evaluate our regular expressions, constructing a regex string from our trees is necessary. Every predefined function must be resolved correctly, in order to produce the desired regular expression and to ensure the validity of the result.
 
-***** 2-ary functions
-Following functions are 2-ary (binary) and operate on two parameters:
-- =|=
-- =&=
+***** =&= function
+The =&= function is the simplest to resolve, since the =&= itself is not present in regex syntax and it merely combines both of it's parameters into a single string.
+#+begin_example
+("&" "a" "b") => "(ab)"
+#+end_example
+As already shown above, all functions will be wraped as groups, to ensure that the expected result is being produced.
 
-**** Examples
+***** =|= function
+The =|= function is a little bit more difficult to process, since the =|= symbol itself has to be placed between it's two arguments.
+#+begin_example
+("|" "a" "b") => "(a|b)"
+#+end_example
+Grouping is applied as well to ensure consistency.
+
+***** Operator functions =*=, =+= and =?=
+All operator functions =*=, =+= and =?= can be implemented the same. Each of these functions has one argument and after all processing is applied, the operator should be after the argument.
+#+begin_example
+("*" "a") => "a*"
+("+" "b") => "b+"
+("?" ("&" "a" "b")) => "(ab)?"
+#+end_example
+For operators, no grouping is applied, since it isn't needed for single arguments and structures that combine two tokens like =&= already apply grouping.
+
+**** Fitness (continued)
+The conversion according to these rules is applied in ~tree->regex-str~, which uses the rewrite functionality of ~meander~ together with the following rules to create the desired structure, which is a vector of strings, which only has to be flattened and joined together to create a valid regular expression.
+#+begin_src clojure
+   [:* ?t] [?t "*"]
+   [:+ ?t] [?t "+"]
+   [:? ?t] [?t "?"]
+   [:& ?a ?b] ["(?:" ?a ?b ")"]
+   [:| ?a ?b] ["(?:" ?a "|" ?b ")"]
+#+end_src
+~rewrite~ rules can be defined in a style that very closely resembles logic programming languages like Prolog. A rule matches the left side of its definition and returns the right hand side as result. Variables start with ~?~ and are substituted accordingly.
+
+The resulting regular expression is applied to each of the words in the word map by matching the pattern on each string.
+#+begin_src clojure
+(let [pattern (re-pattern regex-str)]
+    (map #(-> pattern (re-matches %)) string-list))
+#+end_src
+This results in list of values that contains either the match or ~nil~ for each string. This result is the supplied to the ~f1-score~ function together with the ~boolean-reducer~, which returns true for a match and false for ~nil~. The fitness function finally returns the score determined by ~f1-score~.
+
+**** Optimizing regular expressions
+ A big caveat of generating regular expressions with genetic programming is, that it can result in expressions with very poor performance. In order to preserve computation time, some optimizations based on rules have been implemented. The first performance problem is related to groups, as simple round braces =()= will create capture groups which will always store the matched value separately. Since we don't need any captured value and are only interested in the final match, we can safely ignore such capture groups. Therefore, we turn all automatically created groups into non-capturing groups =(?:)= which will not store their matched values.
+ The next step to optimize regular expressions is to reduce duplicates of the operators =*=, =+= and =?=. Consider the following regular expressions:
+ #+begin_example
+ ((a*)*)*
+ (a+)+
+ (((a?)?)?)?
+ #+end_example
+ Nesting the same operator in this way does not improve the regular expression. Instead, it reduces readability and introduces unnecessary complexity.
+ To solve this problem, all trees generated for regular expressions will be preprocessed by using the ~rewrite~ functionality of ~meander~.
+ Following rules are used to rewrite the regular expressions from above:
+ #+begin_src clojure
+   [:* [:* ?t]] [:* ?t]
+   [:+ [:+ ?t]] [:+ ?t]
+   [:? [:? ?t]] [:? ?t]
+ #+end_src
+ These rules will unnest the corresponding tree structure and transform it into our desired result:
+ #+begin_example
+ [:* [:* "a"]] -> [:* "a"]
+ #+end_example
+
+ The next group of patterns that can easily be simplified, are those that result in a 0-to-n match =*=. These patterns are any combination of =+= and =?= and any combination of =+= and =?= with =*=.
+ #+begin_src clojure
+   [:+ [:? ?t]] [:* ?t]
+   [:? [:+ ?t]] [:* ?t]
+   [:+ [:* ?t]] [:* ?t]
+   [:* [:+ ?t]] [:* ?t]
+   [:? [:* ?t]] [:* ?t]
+   [:* [:? ?t]] [:* ?t]
+ #+end_src
+ The same simplification rules can be applied when the same value is on both sides of =&= and =|= like this
+ #+begin_src clojure
+   [:& [:+ ?t] [:? ?t]] [:* ?t]
+   [:| [:+ ?t] [:* ?t]] [:* ?t]
+    ...
+ #+end_src
+ Some expressions combined with =&= result in the operator =+= and can therefore be extracted.
+ #+begin_src clojure
+   [:& [:+ ?t] ?t] [:+ ?t]
+   [:& ?t [:+ ?t]] [:+ ?t]
+   [:& [:* ?t] ?t] [:+ ?t]
+   [:& ?t [:* ?t]] [:+ ?t]
+ #+end_src
+ The we can extract an expression with an operator as well, if the operator is only applied to one side of an =|=.
+ #+begin_src clojure
+   [:| [?o ?t] ?t] [?o ?t]
+   [:| ?t [?o ?t]] [?o ?t]
+ #+end_src
+ If operators are outside of =&= or =|=, we can pull them into the expression to apply the rules from above to the tokens of =&= and =|=.
+ #+begin_src clojure
+    [:* [?o ?a ?b]] [?o [:* ?a] [:* ?b]]
+    [:+ [?o ?a ?b]] [?o [:+ ?a] [:+ ?b]]
+    [:? [?o ?a ?b]] [?o [:? ?a] [:? ?b]]
+ #+end_src
+ We can also simplify logical expressions according to distributivity.
+ #+begin_src clojure
+    [:& [:| ?a ?b] [:| ?c ?a]] [:| ?a [:& ?b ?c]]
+    [:| [:& ?a ?b] [:& ?a ?c]] [:& ?a [:| ?b ?c]]
+ #+end_src
+ As a last step, we can try to extract operators from =&= and =|= if they are applied to both contained tokens.
+ #+begin_src clojure
+    [:& [?o ?a] [?o ?b]] [?o [:& ?a ?b]]
+    [:| [?o ?a] [?o ?b]] [?o [:| ?a ?b]]
+ #+end_src
+
+**** Termination predicate
+The termination predicate determines at which point a single individual, namely the best of generation, is sufficient enough to solve a given problem. For regular expressions, following termination predicate has been defined.
+#+begin_src clojure
+  (when (>= (:score best-of-gen) 0.99)
+    (->> population
+         (map #(:size %))
+         (utils/median)
+         (<= (:size best-of-gen))))
+#+end_src clojure
+
+We first determine if a given best of generation individual achies a score =S= of at least 0.99. The number 0.99 was chosen, as the floating point operations done in ~f1-score~ can return values smaller than 1 due to imprecise calculations. A score =S= of 0.99 or better is not sufficient, since we want an individual that is as small as possible as well. Therefore the median of the size of the population is calculated, where the current best of generation individual should have a size that is lower or equal to the median.
+
+*** Regular grammars
+The last section of this chapter describes how the creation of regular grammars has been implemented for genetic programming. The first part contains some general definitions, while the following parts will explain the implementation in greater detail.
+
+**** Definitions
+In contrast to regular expressions, where the terminal set consisted of a set of unique characters, a different approach is used for regular grammars. Where regular expressions used single characters as terminals, production rules will be used as terminals for regular grammars. A production rule is implemented as a map with four entries. A non-terminal, which is on the left hand side of a rule, a terminal, which is created or matched by this rule and a reference, which is used to link to other production rules and for recursion.
+#+begin_src clojure
+{:non-terminal :A
+ :terminal "a"
+ :reference :B}
+#+end_src
+Furthermore, two functions are provided to the function set, === and =&=.
+- === returns the rule it has as parameter
+- =&= returns the two rules in a single string
+The arity for these pseudo-functions is unary for === and binary for =&=.
+
+**** Terminal set
+Since the terminal set for regular grammars consists of production rules, some helper functions are needed to create all combinations of a supplied number of terminals and non-terminals.
+
+***** generate-non-terminals
+This function aids in the flexible creation of a list of non-terminals as characters. It produces the specified amount of non-terminals, but not more than the latin alphabet.
+
+***** create-rules-for-refs
+Uses a given non-terminal and terminal to create a collection of rules with ~create-rule~, where each rule references one of the element in ~non-terminal-refs~.
+
+***** generate-rule-set
+~generate-rule-set~ iterates over a set of non-terminals and a set of terminals to an exhaustive list of all possible combinations of rules. First, a rule with a given terminal without a reference and a rule which results in \epsilon, the empty set, is created. Then all possible combinations with the other non-terminals is created with ~create-rules-for-refs~. All of the created rules are combined and appended to the result list. If the terminal set is empty and there are still non-terminals in the non-terminal set, we supply a full set of the same terminals again.
+
+***** create-terminal-set
+This function receives a non-terminal set and a word map, retrieves all unique characters from the word map and generates all possible rules with ~generate-rule-set~.
+
+**** Fitness
+
+
+
+** Experiments
+Run and result of program
+First, show the optimal solutions, based on the converted dfa's from AAlpy and the ICANN paper
+Then show the results of executing the program with short explanations
+
+
+
+
+**** Control parameters
+In order to create comparable results across all evalulated problems, the same set of control parameters is used to evaluate each of them. As there exist some parameters that have already been tried and tested, the control parameters suggested by John R. Koza will be used except for those where additional information has been provided.
+- The population size is 500 individuals.
+- The maximum number of generations is 50, where the initial generation is used as generation 0, so that there are 51 generations in total.
+- The probability of mutation is 0.01. This is different from John R. Koza's recommendations, because we want to allow the usage of subtree deletion.
+- The probability of reproduction is 0.09, which allows for 1% of the new generation to be created by mutation.
+- The probability of crossover is 0.9.
+- When executing crossover, 90% of the time a function will be selected as crossover point an 10% of the time any point can be selected for crossover.
+- The maximum depth for crossover offspring is 17.
+- The maximum depth for the individual generation as well as mutation is 6.
+- The method to generate the initial population is ramped half-and-half.
+- The method of mutation is subtree deletion.
+- The method of selection in all cases is tournament selection.
+- The fitness measure is created using the f1-score.
+  [cite:@books/JRKoza/gp1-1993 p. 114]
+
+** Conclusion
+What is the conclusion i.e. is it feasible to generate regular grammars this way?
+** Acknowledgments
+Thanks to Ben Sless from the Clojurians Slack!
+
+**** Examples for REGEX
 This section provides small example rulesets and their possible graph based representation using regular expressions.
 
 ***** Recursive rules
@@ -267,198 +466,3 @@ These rules are very similar to our previous examples, but now any alteration of
     ("&" "a" "b"))
   ("?" "a"))
 #+end_src
-
-*** Generating an initial population
-We will generate an initial population with the grow and full method, as well as a more unified algorithm like ramped half-and-half.
-The sample implementation upon which this implementation is based on can be found in Genetic Programming 1 by John R. Koza on page 740.
-
-**** grow
-To generate an inidividal of a population with the grow method, a random item is chosen from all functions and terminals. If a terminal is being chosen, it is treated as a leaf and no further nodes are added. If a function was selected, more items are being added according to the functions arity.
-
-#+begin_src clojure
-(def functions
-  ["*" "+" "?" "&" "|"])
-
-(def arities
-  {"*" 1
-   "+" 1
-   "?" 1
-   "&" 2
-   "|" 2})
-#+end_src
-
-The algorithm stops when no more items can be assigned i.e. all leafs are terminals or if the maximum depth has been reached.
-
-***** Example
-Consider following example, a regular grammar with these valid and invalid words.
-#+begin_src clojure
-(def valid-words
-  ["ababababab" "abab" "" "ab"])
-
-(def invalid-words
-  ["a" "aaaa" "bbb" "bababa" "abababbb" "ababaaa"])
-#+end_src
-
-By analyzing these words, we are able to determine the used terminals.
-#+begin_src clojure
-(def terminals
-  ["a" "b"])
-#+end_src
-
-When these terminals are combined into a list with the predefined functions, the full list of possible nodes can be determined.
-#+begin_src clojure
-(def nodes
-  ["*" "+" "?" "&" "|" "a" "b"])
-#+end_src
-
-Following sample trees could be created by randomly selecting elements from the node list. To keep it simple, the maximum depth is given with 4.
-#+begin_src clojure
-;; produces '(((a)*|(b)?)+)*'
-("*"
- ("+"
-  ("|"
-   ("*" "a")
-   ("?" "b"))))
-#+end_src
-This example shows, that all contents of all functions have to be grouped automatically.
-
-Another example tree could be:
-#+begin_src clojure
-;; produces 'a(b|(a)?)'
-("&" "a"
- ("|" "b"
-  ("?" "a")))
-#+end_src
-
-**** full
-When generating an individual with the full method, only items from the function set are selected until the maximum tree depth. Afterwards all remaining nodes are populated with items from the terminal set.
-
-#+begin_src clojure
-(def functions
-  ["*" "+" "?" "&" "|"])
-#+end_src
-
-***** Example
-Consider following example, a regular grammar with these valid and invalid words.
-#+begin_src clojure
-(def valid-words
-  ["ababababab" "abab" "" "ab"])
-
-(def invalid-words
-  ["a" "aaaa" "bbb" "bababa" "abababbb" "ababaaa"])
-#+end_src
-
-By analyzing these words, we are able to determine the used terminals.
-#+begin_src clojure
-(def terminals
-  ["a" "b"])
-#+end_src
-
-The following tree with a maximum depth of 4 might be generated by the full method.
-#+begin_src clojure
-;; produces '(((b)+)?)*|(((b)?)*)?'
-("|"
- ("*"
-  ("?"
-   ("+" "b")))
- ("?"
-  ("*"
-   ("?" "b"))))
-#+end_src
-
-This is another example tree.
-#+begin_src clojure
-;; produces '(((b)+ba)|((a)*(a|b))((aa)?)*)'
-("&"
- ("|"
-  ("&"
-   ("+" "b")
-   ("&" "b" "a"))
-  ("&"
-   ("*" "a")
-   ("|" "a" "b")))
- ("*"
-  ("?"
-   ("&" "a" "a"))))
-#+end_src
-
-**** ramped half-and-half
-When using ramped half-and-half, half of the trees of the initial population are created using the grow method and the other half is created using the full method. This ensures a larger variety of tree shapes, which should help with discovering better results.
-
-*** Evaluation of individuals trees
-Before determining the best trees of a population, the performance of each individual has to be evaluated. To evaluate our regular expressions, constructing a regex string from our trees is necessary. Every predefined function must be resolved correctly, in order to produce the desired regular expression and to ensure the validity of the result.
-
-**** =&= function
-The =&= function is the simplest to resolve, since the =&= itself is not present in regex syntax and it merely combines both of it's parameters into a single string.
-#+begin_example
-("&" "a" "b") => "(ab)"
-#+end_example
-As already shown above, all functions will be wraped as groups, to ensure that the expected result is being produced.
-
-**** =|= function
-The =|= function is a little bit more difficult to process, since the =|= symbol itself has to be placed between it's two arguments.
-#+begin_example
-("|" "a" "b") => "(a|b)"
-#+end_example
-Grouping is applied as well to ensure consistency.
-
-**** Operator functions =*=, =+= and =?=
-All operator functions =*=, =+= and =?= can be implemented the same. Each of these functions has one argument and after all processing is applied, the operator should be after the argument.
-#+begin_example
-("*" "a") => "a*"
-("+" "b") => "b+"
-("?" ("&" "a" "b")) => "(ab)?"
-#+end_example
-For operators, no grouping is applied, since it isn't needed for single arguments and deeper nested structures like =&= already apply grouping.
-
-*** Optimizing regular expressions
- Whilst testing the implementation of regular expression, one thing became very clear, very quickly: Grammatical Evolution will create some deeply complicated regular expressions which in turn will harm performance. The first performance problem is related to groups, since simple round braces =()= will create capture groups which will always store the matched value separately. Since we don't need any captured value and are only interested in the final match, we can safely ignore such capture groups. Therefore, we turn all automatically created groups into non-capturing groups =(?:)= which will not store their matched values.
- The next step to optimize regular expressions is to reduce duplicates of the operators =*=, =+= and =?=. Consider the following regular expressions:
- #+begin_example
- ((a*)*)*
- (a+)+
- (((a?)?)?)?
- #+end_example
- Nesting the same operator in this way does not improve the regular expression. Instead, it reduces readability and introduces unnecessary complexity.
- To solve this problem, all trees generated for regular expressions will be preprocessed by using the `rewrite` functionality of `meander`. `rewrite` rules can be defined in a style that very closely resembles logic programming languages like Prolog. A rule matches the left side of its definition and returns the right hand side as result. Variables start with `?` and are substituted accordingly.
- Following rules are used to rewrite the regular expressions from above:
- #+begin_src clojure
-(rewrite
-   [:* [:* ?t]] [:* ?t]
-   [:+ [:+ ?t]] [:+ ?t]
-   [:? [:? ?t]] [:? ?t])
- #+end_src
- These rules will unnest the corresponding tree structure and transform it into our desired result:
- #+begin_example
- [:* [:* "a"]] -> [:* "a"]
- #+end_example
-
- The next group of patterns that can easily be simplified, are those that result in a 0-to-n match =*=. These patterns are any combination of =+= and =?= and any combination of =+= and =?= with =*=.
-** Experiments
-Run and result of program
-First, show the optimal solutions, based on the converted dfa's from AAlpy and the ICANN paper
-Then show the results of executing the program with short explanations
-
-
-
-
-**** Control parameters
-In order to create comparable results across all evalulated problems, the same set of control parameters is used to evaluate each of them. As there exist some parameters that have already been tried and tested, the control parameters suggested by John R. Koza will be used except for those where additional information has been provided.
-- The population size is 500 individuals.
-- The maximum number of generations is 50, where the initial generation is used as generation 0, so that there are 51 generations in total.
-- The probability of mutation is 0.01. This is different from John R. Koza's recommendations, because we want to allow the usage of subtree deletion.
-- The probability of reproduction is 0.09, which allows for 1% of the new generation to be created by mutation.
-- The probability of crossover is 0.9.
-- When executing crossover, 90% of the time a function will be selected as crossover point an 10% of the time any point can be selected for crossover.
-- The maximum depth for crossover offspring is 17.
-- The maximum depth for the individual generation as well as mutation is 6.
-- The method to generate the initial population is ramped half-and-half.
-- The method of mutation is subtree deletion.
-- The method of selection in all cases is tournament selection.
-- The fitness measure is created using the f1-score.
-  [cite:@books/JRKoza/gp1-1993 p. 114]
-
-** Conclusion
-What is the conclusion i.e. is it feasible to generate regular grammars this way?
-** Acknowledgments
-Thanks to Ben Sless from the Clojurians Slack!
