@@ -17,7 +17,7 @@
                                         (let [{:keys [non-terminal reference]} node-val]
                                           (recur (zip/next node) (conj non-terminals non-terminal) (conj references reference))))))))
 
-(defn remove-unsolved-references [tree]
+(defn remove-unresolved-references [tree]
   (let [{:keys [non-terminals
                 references]} (get-nt-and-refs tree)
         unresolved (reduce #(if (contains? non-terminals %2) %1 (conj %1 %2)) #{} references)]
@@ -53,7 +53,7 @@
   (format "%s = %s;" (name non-terminal) (str/join "|" (format-rules rules))))
 
 (defn tree->grammar [tree]
-  (let [clean-tree (remove-unsolved-references tree)]
+  (let [clean-tree (remove-unresolved-references tree)]
     (->> clean-tree
          get-rules-by-non-terminal
          (map (fn [[_ r]] (reduce-rules r)))

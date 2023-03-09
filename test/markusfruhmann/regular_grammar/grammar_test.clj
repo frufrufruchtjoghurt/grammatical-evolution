@@ -21,10 +21,10 @@
 (deftest remove-unsolved-references-test
   (let [tree [:+ {:non-terminal :A :reference :B} {:non-terminal :B :reference :A}]]
     (is (= [:+ {:non-terminal :A :reference :B} {:non-terminal :B :reference :A}]
-           (subject/remove-unsolved-references tree)))))
+           (subject/remove-unresolved-references tree)))))
 
 (deftest remove-unsolved-references-test-unresolved
   (let [tree [:+ {:non-terminal :A :reference nil} {:non-terminal :B :reference :C}]]
     (is (= [:+ {:non-terminal :A :reference nil} {:non-terminal :B :reference nil}]
-           (subject/remove-unsolved-references tree)))))
+           (subject/remove-unresolved-references tree)))))
 
