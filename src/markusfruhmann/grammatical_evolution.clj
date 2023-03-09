@@ -37,10 +37,12 @@
   ((.pretty-print gramd/default-grammar-config) best-of-grammar))
 
 (defn execute-regex [tomita-words]
-  (g/run-genetic-programming regd/default-regex-config 100 200 10 tomita-words :method-of-mutation :delete))
+  (g/run-genetic-programming regd/default-regex-config 50 500 6 tomita-words
+                             :max-crossover-depth 17 :method-of-mutation :delete))
 
 (defn execute-grammar [tomita-words terminal-set]
-  (g/run-genetic-programming gramd/default-grammar-config 100 200 10 tomita-words :terminal-set terminal-set))
+  (g/run-genetic-programming gramd/default-grammar-config 50 500 6 tomita-words
+                             :max-crossover-depth 17 :terminal-set terminal-set))
 
 (defn execute-all-and-print []
   (let [results (map (fn [[tom gram-t]] {:regex   (execute-regex tom)

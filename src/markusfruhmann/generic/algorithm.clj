@@ -136,9 +136,16 @@
     (h/validate-crossover male new-male female new-female max-crossover-depth)))
 
 (defn crossover-at-function [male female function-set max-crossover-depth]
-  (let [male-point (rand-nth (h/count-function-points male function-set))
-        female-point (rand-nth (h/count-function-points female function-set))]
-    (crossover male male-point female female-point max-crossover-depth)))
+  (let [mcnt (h/count-function-points male function-set)
+        fcnt (h/count-function-points female function-set)]
+    (cond (empty? mcnt)
+          [female]
+          (empty? fcnt)
+          [male]
+          :else
+          (let [male-point   (rand-nth (h/count-function-points male function-set))
+                female-point (rand-nth (h/count-function-points female function-set))]
+            (crossover male male-point female female-point max-crossover-depth)))))
 
 (defn crossover-at-any-point [male female max-crossover-depth]
   (let [male-point (rand-int (h/count-tree-elements male))
@@ -234,10 +241,10 @@
       :or {terminal-set (utils/get-terminals-from-map word-map)
            method-of-generation :ramped
            method-of-mutation :subtree
-           max-crossover-depth max-individual-depth
-           max-mutation-subtree-depth (-> max-individual-depth (* 0.5) (int))
-           crossover-at-function-frac 0.45
-           crossover-at-any-point-frac 0.45
+           max-crossover-depth (* 3 max-individual-depth)
+           max-mutation-subtree-depth max-individual-depth
+           crossover-at-function-frac 0.81
+           crossover-at-any-point-frac 0.09
            reproduction-frac 0.09}}]
   (let [optional {:terminal-set terminal-set
                   :method-of-generation method-of-generation

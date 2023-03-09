@@ -12,7 +12,8 @@
   "Returns a list of the full match or nil for every word in string-list matched by regex."
   [regex-str string-list]
   (let [pattern (re-pattern regex-str)]
-    (map #(-> pattern (re-matches %)) string-list)))
+    ;; Error within pattern matcher due to large regex. Return nil for low scoring.
+    (map #(try (re-matches pattern %) (catch java.lang.StackOverflowError _ nil)) string-list)))
 
 (defn regex-fitness
   "Scores an individual by applying it to the predefined word-map and calculating the f1-score."

@@ -24,19 +24,13 @@
   (reduce max-by-compare population))
 
 (defn find-with-tournament-selection
-  "Chooses a random amount of programs between 2 and (/ (count population) 3)."
+  "Chooses two random programs from the population and returns the better one."
   [scored-population]
   (when (> (count scored-population) 0)
     (if (= 1 (count scored-population))
-      (first scored-population)
+      (nth scored-population 0)
       (let [shuffled (shuffle scored-population)]
-        (as-> scored-population p
-          (count p)
-          (/ p 3)
-          (rand-int p)
-          (max p 2)
-          (subvec shuffled 0 p)
-          (get-best-individual p))))))
+        (get-best-individual (subvec shuffled 0 2))))))
 
 (defn apply-at-tree
   "Applies func at the given index.
