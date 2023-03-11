@@ -80,9 +80,9 @@
   [best-of-gen population]
   (when (>= (:score best-of-gen) 0.99)
     (->> population
-         (map #(:size %))
+         (map #(:mass %))
          (utils/median)
-         (<= (:size best-of-gen)))))
+         (<= (:mass best-of-gen)))))
 
-(defn grammar-pretty-print [{:keys [prog size score]}]
-  (println "Grammar:\n" (tree->grammar prog) "\nSize:" size "Score:" score))
+(defn grammar-pretty-print [{:keys [prog mass score]}]
+  (println "Grammar:\n" (tree->grammar prog) "\nSize:" mass "Score:" score))

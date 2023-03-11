@@ -29,9 +29,9 @@
   [best-of-gen population]
   (when (>= (:score best-of-gen) 0.99)
     (->> population
-         (map #(:size %))
+         (map #(:mass %))
          (utils/median)
-         (<= (:size best-of-gen)))))
+         (<= (:mass best-of-gen)))))
 
-(defn regex-pretty-print [{:keys [prog size score]}]
-  (println "Regex:" (tree->regex-str prog) "Size:" size "Score:" score))
+(defn regex-pretty-print [{:keys [prog mass score]}]
+  (println "Regex:" (tree->regex-str prog) "Size:" mass "Score:" score))

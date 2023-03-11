@@ -9,7 +9,7 @@
                      pretty-print])
 
 (defrecord GPResult [prog
-                     ^long size
+                     ^long mass
                      ^double score]
   Comparable
   (compareTo [_ other]
@@ -17,10 +17,10 @@
       (cond (> score score2)
             1
             (== score score2)
-            (let [size2 (.size ^GPResult other)]
-              (cond (< size size2)
+            (let [mass2 (.mass ^GPResult other)]
+              (cond (< mass mass2)
                     1
-                    (== size size2)
+                    (== mass mass2)
                     0
                     :else
                     -1))

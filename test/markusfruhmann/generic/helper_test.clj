@@ -21,7 +21,7 @@
     (results/pass? (check/quick-check 100 count-function-points-prop))))
 
 (def fitness-map (gen/hash-map :score (gen/double* {:NaN? false :min 0.0 :max 1N})
-                               :size gen/nat))
+                               :mass gen/nat))
 
 (def find-with-tournament-selection-prop
   (prop/for-all [v (gen/vector fitness-map)]
